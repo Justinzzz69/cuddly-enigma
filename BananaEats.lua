@@ -61,10 +61,10 @@ local labeledValves = {}
 
 local puzzleNumberEspActive = false
 local puzzleNumberEspLoop = nil
-local puzzleNumberEspColor = Color3.fromRGB(255, 255, 255) -- Anpassbar
+local puzzleNumberEspColor = Color3.fromRGB(255, 255, 255)
 local puzzleNumbers = {["23"] = true, ["34"] = true, ["31"] = true}
 
--- Flag, um zu steuern, dass nur ein Label erstellt wird
+-- Neuer Flag: Erzeugt nur ein einziges Label pro Durchlauf
 local puzzleLabelCreated = false
 
 local noFogActive = false
@@ -372,10 +372,13 @@ local function valveEspLoopFunction()
     end
 end
 
--- Hier wurde die Puzzle Number ESP-Funktion angepasst:
+-- Puzzle Number ESP:
+-- => Jedes Puzzle-Teil bekommt ein BoxHandleAdornment
+-- => Nur EIN Label pro Puzzle-Model
 local function checkPuzzleNumberEsp(obj)
     if not obj:IsA("BasePart") then return end
     if obj.Parent and obj.Parent.Name == "Buttons" and puzzleNumbers[obj.Name] then
+        -- 1) Erstelle Box-ESP für jedes Puzzle-Teil
         if not obj:FindFirstChild("PuzzleNumberESP") then
             local esp = Instance.new("BoxHandleAdornment")
             esp.Name = "PuzzleNumberESP"
@@ -387,13 +390,29 @@ local function checkPuzzleNumberEsp(obj)
             esp.Color3 = puzzleNumberEspColor
             esp.Parent = obj
         end
-        -- Nur einmal ein Label erstellen, wenn noch keines erstellt wurde
+
+        -- 2) Erstelle nur EIN Label pro gesamtem Puzzle, z.B. an "CubePuzzle"
         if not puzzleLabelCreated then
-            if not obj:FindFirstChild("PuzzleNumberLabel") then
-                local billboard = createBillboard("Cube Puzzle")
-                billboard.Name = "PuzzleNumberLabel"
-                billboard.Parent = obj
+            -- Versuche das Model "CubePuzzle" (oder "PicturePuzzle") zu finden
+            local puzzleModel = obj:FindFirstAncestorWhichIsA("Model")
+            if puzzleModel and puzzleModel.Name == "CubePuzzle" then
+                -- Wenn es eine PrimaryPart gibt, platzieren wir dort das Label
+                local partToLabel = puzzleModel.PrimaryPart or obj
+                if not partToLabel:FindFirstChild("PuzzleNumberLabel") then
+                    local billboard = createBillboard("Cube Puzzle")
+                    billboard.Name = "PuzzleNumberLabel"
+                    billboard.Parent = partToLabel
+                end
+            else
+                -- Fallback: Label an das aktuelle Objekt, falls wir kein Model finden
+                if not obj:FindFirstChild("PuzzleNumberLabel") then
+                    local billboard = createBillboard("Cube Puzzle")
+                    billboard.Name = "PuzzleNumberLabel"
+                    billboard.Parent = obj
+                end
             end
+
+            -- Nur einmal pro Schleifendurchlauf
             puzzleLabelCreated = true
         end
     end
@@ -401,7 +420,7 @@ end
 
 local function puzzleNumberEspLoopFunction()
     while puzzleNumberEspActive do
-        puzzleLabelCreated = false  -- Zu Beginn jeder Iteration zurücksetzen
+        puzzleLabelCreated = false  -- Zu Beginn jeder Schleifeniteration zurücksetzen
         for _, obj in pairs(workspace:GetDescendants()) do
             checkPuzzleNumberEsp(obj)
         end
@@ -418,7 +437,7 @@ local function noFogLoopFunction()
 end
 
 -----------------------------
--- ESP-Tab: Toggles in erster Sektion
+-- ESP-Tab: Toggles
 -----------------------------
 ESPTogglesSection:AddToggle("CakeEspToggle", {
     Title = "Enable Cake ESP",
@@ -521,7 +540,7 @@ ESPTogglesSection:AddToggle("PuzzleNumberEspToggle", {
 })
 
 -----------------------------
--- ESP-Tab: Colors in zweiter Sektion
+-- ESP-Tab: Colors
 -----------------------------
 ESPColorsSection:AddColorpicker("CakeEspColor", {
     Title = "Cake ESP Color",
