@@ -145,12 +145,22 @@ Tabs.Main:AddToggle("NametagToggle", {
     Callback = function(state)
         nametagActive = state
         if state then
-            for _, player in pairs(game.Players:GetPlayers()) do
-                if player ~= game.Players.LocalPlayer then
-                    addNametag(player)
+            if nametagLoop then task.cancel(nametagLoop) end
+            nametagLoop = task.spawn(function()
+                while nametagActive do
+                    for _, player in pairs(game.Players:GetPlayers()) do
+                        if player ~= game.Players.LocalPlayer then
+                            addNametag(player)
+                        end
+                    end
+                    wait(1)
                 end
-            end
+            end)
         else
+            if nametagLoop then
+                task.cancel(nametagLoop)
+                nametagLoop = nil
+            end
             for _, player in pairs(game.Players:GetPlayers()) do
                 if player.Character and player.Character:FindFirstChild("Head") then
                     local tag = player.Character.Head:FindFirstChild("Nametag")
