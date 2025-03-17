@@ -27,7 +27,6 @@ local Tabs = {
 }
 
 -- Im ESP-Tab zwei Sektionen: Toggles & Colors
--- ACHTUNG: Hier als reine Strings, weil manche Fluent-Versionen das so erwarten:
 local ESPTogglesSection = Tabs.ESP:AddSection("ESP Toggles")
 local ESPColorsSection = Tabs.ESP:AddSection("ESP Colors")
 
@@ -64,6 +63,9 @@ local puzzleNumberEspActive = false
 local puzzleNumberEspLoop = nil
 local puzzleNumberEspColor = Color3.fromRGB(255, 255, 255) -- Anpassbar
 local puzzleNumbers = {["23"] = true, ["34"] = true, ["31"] = true}
+
+-- Flag, um zu steuern, dass nur ein Label erstellt wird
+local puzzleLabelCreated = false
 
 local noFogActive = false
 local noFogLoop = nil
@@ -370,6 +372,7 @@ local function valveEspLoopFunction()
     end
 end
 
+-- Hier wurde die Puzzle Number ESP-Funktion angepasst:
 local function checkPuzzleNumberEsp(obj)
     if not obj:IsA("BasePart") then return end
     if obj.Parent and obj.Parent.Name == "Buttons" and puzzleNumbers[obj.Name] then
@@ -384,16 +387,21 @@ local function checkPuzzleNumberEsp(obj)
             esp.Color3 = puzzleNumberEspColor
             esp.Parent = obj
         end
-        if not obj:FindFirstChild("PuzzleNumberLabel") then
-            local billboard = createBillboard("Cube Puzzle")
-            billboard.Name = "PuzzleNumberLabel"
-            billboard.Parent = obj
+        -- Nur einmal ein Label erstellen, wenn noch keines erstellt wurde
+        if not puzzleLabelCreated then
+            if not obj:FindFirstChild("PuzzleNumberLabel") then
+                local billboard = createBillboard("Cube Puzzle")
+                billboard.Name = "PuzzleNumberLabel"
+                billboard.Parent = obj
+            end
+            puzzleLabelCreated = true
         end
     end
 end
 
 local function puzzleNumberEspLoopFunction()
     while puzzleNumberEspActive do
+        puzzleLabelCreated = false  -- Zu Beginn jeder Iteration zurücksetzen
         for _, obj in pairs(workspace:GetDescendants()) do
             checkPuzzleNumberEsp(obj)
         end
