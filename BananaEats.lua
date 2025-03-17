@@ -1,9 +1,13 @@
-
+-----------------------------
+-- Bibliotheken laden
+-----------------------------
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
-
+-----------------------------
+-- Fenster und Tabs erstellen
+-----------------------------
 local Window = Fluent:CreateWindow({
     Title = "Banana Eats Script",
     SubTitle = "by Tapetenputzer",
@@ -14,13 +18,22 @@ local Window = Fluent:CreateWindow({
     MinimizeKey = Enum.KeyCode.LeftControl
 })
 
+-- Vier Haupt-Tabs
 local Tabs = {
-    Main = Window:AddTab({ Title = "Main", Icon = "gamepad" }),
+    ESP = Window:AddTab({ Title = "ESP", Icon = "eye" }),
+    Player = Window:AddTab({ Title = "Player", Icon = "user" }),
+    Visual = Window:AddTab({ Title = "Visual", Icon = "sun" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
 
-local Options = Fluent.Options
+-- Im ESP-Tab zwei Sektionen: Toggles & Colors
+-- ACHTUNG: Hier als reine Strings, weil manche Fluent-Versionen das so erwarten:
+local ESPTogglesSection = Tabs.ESP:AddSection("ESP Toggles")
+local ESPColorsSection = Tabs.ESP:AddSection("ESP Colors")
 
+-----------------------------
+-- Variablen / Status Flags
+-----------------------------
 local cakeEspActive = false
 local cakeEspLoop = nil
 local cakeEspColor = Color3.fromRGB(255, 255, 0)
@@ -45,18 +58,19 @@ local currentSpeed = 16
 local valveEspActive = false
 local valveEspLoop = nil
 local valveEspColor = Color3.fromRGB(0, 255, 255)
-local labeledValves = {} 
-
+local labeledValves = {}
 
 local puzzleNumberEspActive = false
 local puzzleNumberEspLoop = nil
+local puzzleNumberEspColor = Color3.fromRGB(255, 255, 255) -- Anpassbar
 local puzzleNumbers = {["23"] = true, ["34"] = true, ["31"] = true}
 
--- No Fog
 local noFogActive = false
 local noFogLoop = nil
 
-
+-----------------------------
+-- Hilfsfunktion: BillboardGui
+-----------------------------
 local function createBillboard(text)
     local billboard = Instance.new("BillboardGui")
     billboard.Size = UDim2.new(0, 100, 0, 50)
@@ -75,7 +89,9 @@ local function createBillboard(text)
     return billboard
 end
 
-
+-----------------------------
+-- Entferner-Funktionen
+-----------------------------
 local function removeCakeEsp()
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") then
@@ -126,7 +142,7 @@ local function removeNametags()
 end
 
 local function removeValveEsp()
-    for _, obj in pairs(workspace:GetDescendants()) do
+    for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") then
             if obj:FindFirstChild("ValveESP") then
                 obj.ValveESP:Destroy()
@@ -152,13 +168,14 @@ local function removePuzzleNumberEsp()
     end
 end
 
-
+-----------------------------
+-- Check-/Loop-Funktionen
+-----------------------------
 local function checkCakeEsp(obj)
     if not obj:IsA("BasePart") then return end
     if (obj.Parent and obj.Parent.Name == "Cake" and tonumber(obj.Name))
        or (obj.Parent and obj.Parent.Name == "CakePlate" and obj.Name == "Plate") then
 
-        -- BoxHandleAdornment
         if not obj:FindFirstChild("CakeESP") then
             local esp = Instance.new("BoxHandleAdornment")
             esp.Name = "CakeESP"
@@ -171,7 +188,6 @@ local function checkCakeEsp(obj)
             esp.Parent = obj
         end
 
-        -- Label
         if not obj:FindFirstChild("CakeLabel") then
             local labelText = "Cake Plate"
             if obj.Parent and obj.Parent.Name == "Cake" then
@@ -196,12 +212,10 @@ local function cakeEspLoopFunction()
     end
 end
 
-
 local function checkCoinEsp(obj)
     if not obj:IsA("BasePart") then return end
     if obj.Parent and obj.Parent.Name == "Tokens" and obj.Name == "Token" then
 
-        -- BoxHandleAdornment
         if not obj:FindFirstChild("CoinESP") then
             local esp = Instance.new("BoxHandleAdornment")
             esp.Name = "CoinESP"
@@ -214,7 +228,6 @@ local function checkCoinEsp(obj)
             esp.Parent = obj
         end
 
-        -- Label
         if not obj:FindFirstChild("CoinLabel") then
             local billboard = createBillboard("Coin")
             billboard.Name = "CoinLabel"
@@ -231,7 +244,6 @@ local function coinEspLoopFunction()
         wait(1)
     end
 end
-
 
 local function checkChams()
     for _, player in pairs(game.Players:GetPlayers()) do
@@ -268,7 +280,6 @@ local function chamsLoopFunction()
     end
 end
 
-
 local function checkNametags()
     for _, player in pairs(game.Players:GetPlayers()) do
         if player ~= game.Players.LocalPlayer
@@ -298,13 +309,11 @@ local function nametagLoopFunction()
     end
 end
 
-
 local function checkValveEsp(obj)
     if not obj:IsA("BasePart") then return end
     local parent = obj.Parent
     if not parent then return end
 
-    -- Prüfen, ob es sich um ein Valve-Objekt handelt
     local isValve = false
     if parent.Name == "Valve" or parent.Name == "ValvePuzzle" then
         isValve = true
@@ -313,13 +322,11 @@ local function checkValveEsp(obj)
     end
     if not isValve then return end
 
-    -- Schon markiert?
     if labeledValves[parent] then
         return
     end
     labeledValves[parent] = true
 
-    -- BasePart ermitteln
     local basePart = obj
     if parent:IsA("Model") then
         if parent.PrimaryPart then
@@ -334,7 +341,6 @@ local function checkValveEsp(obj)
         end
     end
 
-    -- BoxHandleAdornment
     if not basePart:FindFirstChild("ValveESP") then
         local esp = Instance.new("BoxHandleAdornment")
         esp.Name = "ValveESP"
@@ -347,7 +353,6 @@ local function checkValveEsp(obj)
         esp.Parent = basePart
     end
 
-    -- BillboardGui
     if not basePart:FindFirstChild("ValveLabel") then
         local billboard = createBillboard("Valve")
         billboard.Name = "ValveLabel"
@@ -357,27 +362,12 @@ end
 
 local function valveEspLoopFunction()
     while valveEspActive do
-        
         labeledValves = {}
         for _, obj in ipairs(workspace:GetDescendants()) do
             checkValveEsp(obj)
         end
         wait(1)
     end
-end
-
-local function removeValveEsp()
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            if obj:FindFirstChild("ValveESP") then
-                obj.ValveESP:Destroy()
-            end
-            if obj:FindFirstChild("ValveLabel") then
-                obj.ValveLabel:Destroy()
-            end
-        end
-    end
-    labeledValves = {}
 end
 
 local function checkPuzzleNumberEsp(obj)
@@ -391,7 +381,7 @@ local function checkPuzzleNumberEsp(obj)
             esp.ZIndex = 10
             esp.Size = obj.Size + Vector3.new(0.2, 0.2, 0.2)
             esp.Transparency = 0.5
-            esp.Color3 = Color3.new(1, 1, 1)
+            esp.Color3 = puzzleNumberEspColor
             esp.Parent = obj
         end
         if not obj:FindFirstChild("PuzzleNumberLabel") then
@@ -419,9 +409,10 @@ local function noFogLoopFunction()
     end
 end
 
-
--- Cake ESP
-Tabs.Main:AddToggle("CakeEspToggle", {
+-----------------------------
+-- ESP-Tab: Toggles in erster Sektion
+-----------------------------
+ESPTogglesSection:AddToggle("CakeEspToggle", {
     Title = "Enable Cake ESP",
     Default = false,
     Callback = function(state)
@@ -436,16 +427,8 @@ Tabs.Main:AddToggle("CakeEspToggle", {
         end
     end
 })
-Tabs.Main:AddColorpicker("CakeEspColor", {
-    Title = "Cake ESP Color",
-    Default = cakeEspColor,
-    Callback = function(color)
-        cakeEspColor = color
-    end
-})
 
--- Coin ESP
-Tabs.Main:AddToggle("CoinEspToggle", {
+ESPTogglesSection:AddToggle("CoinEspToggle", {
     Title = "Enable Coin ESP",
     Default = false,
     Callback = function(state)
@@ -460,16 +443,8 @@ Tabs.Main:AddToggle("CoinEspToggle", {
         end
     end
 })
-Tabs.Main:AddColorpicker("CoinEspColor", {
-    Title = "Coin ESP Color",
-    Default = coinEspColor,
-    Callback = function(color)
-        coinEspColor = color
-    end
-})
 
--- Chams
-Tabs.Main:AddToggle("ChamsToggle", {
+ESPTogglesSection:AddToggle("ChamsToggle", {
     Title = "Enable Chams",
     Default = false,
     Callback = function(state)
@@ -484,23 +459,8 @@ Tabs.Main:AddToggle("ChamsToggle", {
         end
     end
 })
-Tabs.Main:AddColorpicker("EnemyChamsColor", {
-    Title = "Enemy Chams Color",
-    Default = enemyChamColor,
-    Callback = function(color)
-        enemyChamColor = color
-    end
-})
-Tabs.Main:AddColorpicker("TeamChamsColor", {
-    Title = "Team Chams Color",
-    Default = teamChamColor,
-    Callback = function(color)
-        teamChamColor = color
-    end
-})
 
--- Nametags
-Tabs.Main:AddToggle("NametagToggle", {
+ESPTogglesSection:AddToggle("NametagToggle", {
     Title = "Enable Nametags",
     Default = false,
     Callback = function(state)
@@ -516,53 +476,105 @@ Tabs.Main:AddToggle("NametagToggle", {
     end
 })
 
--- Fullbright
-Tabs.Main:AddToggle("FullbrightToggle", {
-    Title = "Enable Fullbright",
+ESPTogglesSection:AddToggle("ValveEspToggle", {
+    Title = "Enable Valve ESP",
     Default = false,
     Callback = function(state)
-        fullbrightActive = state
+        valveEspActive = state
         if state then
-            game.Lighting.Brightness = 10
-            game.Lighting.ClockTime = 12
-            game.Lighting.FogEnd = 100000
-            game.Lighting.GlobalShadows = false
+            if valveEspLoop then task.cancel(valveEspLoop) end
+            valveEspLoop = task.spawn(valveEspLoopFunction)
         else
-            game.Lighting.Brightness = 1
-            game.Lighting.ClockTime = 14
-            game.Lighting.FogEnd = 1000
-            game.Lighting.GlobalShadows = true
+            if valveEspLoop then
+                task.cancel(valveEspLoop)
+                valveEspLoop = nil
+            end
+            removeValveEsp()
         end
     end
 })
 
--- No Fog (Disable Fog)
-Tabs.Main:AddToggle("NoFogToggle", {
-    Title = "Disable Fog",
+ESPTogglesSection:AddToggle("PuzzleNumberEspToggle", {
+    Title = "Enable Puzzle Number ESP",
     Default = false,
     Callback = function(state)
+        puzzleNumberEspActive = state
         if state then
-            noFogActive = true
-            if noFogLoop then task.cancel(noFogLoop) end
-            noFogLoop = task.spawn(noFogLoopFunction)
+            if puzzleNumberEspLoop then task.cancel(puzzleNumberEspLoop) end
+            puzzleNumberEspLoop = task.spawn(puzzleNumberEspLoopFunction)
         else
-            noFogActive = false
-            if noFogLoop then task.cancel(noFogLoop) end
-            game.Lighting.FogStart = 0
-            game.Lighting.FogEnd = 1000
+            if puzzleNumberEspLoop then
+                task.cancel(puzzleNumberEspLoop)
+                puzzleNumberEspLoop = nil
+            end
+            removePuzzleNumberEsp()
         end
     end
 })
 
--- Speed
-local SpeedInput = Tabs.Main:AddInput("SpeedInput", {
+-----------------------------
+-- ESP-Tab: Colors in zweiter Sektion
+-----------------------------
+ESPColorsSection:AddColorpicker("CakeEspColor", {
+    Title = "Cake ESP Color",
+    Default = cakeEspColor,
+    Callback = function(color)
+        cakeEspColor = color
+    end
+})
+
+ESPColorsSection:AddColorpicker("CoinEspColor", {
+    Title = "Coin ESP Color",
+    Default = coinEspColor,
+    Callback = function(color)
+        coinEspColor = color
+    end
+})
+
+ESPColorsSection:AddColorpicker("EnemyChamsColor", {
+    Title = "Enemy Chams Color",
+    Default = enemyChamColor,
+    Callback = function(color)
+        enemyChamColor = color
+    end
+})
+
+ESPColorsSection:AddColorpicker("TeamChamsColor", {
+    Title = "Team Chams Color",
+    Default = teamChamColor,
+    Callback = function(color)
+        teamChamColor = color
+    end
+})
+
+ESPColorsSection:AddColorpicker("ValveEspColor", {
+    Title = "Valve ESP Color",
+    Default = valveEspColor,
+    Callback = function(color)
+        valveEspColor = color
+    end
+})
+
+ESPColorsSection:AddColorpicker("PuzzleNumberEspColor", {
+    Title = "Puzzle Number Color",
+    Default = puzzleNumberEspColor,
+    Callback = function(color)
+        puzzleNumberEspColor = color
+    end
+})
+
+-----------------------------
+-- Player-Tab
+-----------------------------
+local SpeedInput = Tabs.Player:AddInput("SpeedInput", {
     Title = "Set Speed",
     Placeholder = "Default = 16",
     Numeric = true
 })
-Tabs.Main:AddButton({
+
+Tabs.Player:AddButton({
     Title = "Set Player Speed",
-    Description = "set speed of Player",
+    Description = "Set speed of Player",
     Callback = function()
         local speed = tonumber(SpeedInput.Value)
         if speed and speed > 0 then
@@ -584,9 +596,10 @@ Tabs.Main:AddButton({
         end
     end
 })
-Tabs.Main:AddButton({
+
+Tabs.Player:AddButton({
     Title = "Reset Speed",
-    Description = "sets the speed to 16",
+    Description = "Sets the speed to 16",
     Callback = function()
         currentSpeed = 16
         local char = game.Players.LocalPlayer.Character
@@ -600,51 +613,48 @@ Tabs.Main:AddButton({
     end
 })
 
-Tabs.Main:AddToggle("ValveEspToggle", {
-    Title = "Enable Valve ESP",
+-----------------------------
+-- Visual-Tab
+-----------------------------
+Tabs.Visual:AddToggle("FullbrightToggle", {
+    Title = "Enable Fullbright",
     Default = false,
     Callback = function(state)
-        valveEspActive = state
+        fullbrightActive = state
         if state then
-            if valveEspLoop then task.cancel(valveEspLoop) end
-            valveEspLoop = task.spawn(valveEspLoopFunction)
+            game.Lighting.Brightness = 10
+            game.Lighting.ClockTime = 12
+            game.Lighting.FogEnd = 100000
+            game.Lighting.GlobalShadows = false
         else
-            if valveEspLoop then
-                task.cancel(valveEspLoop)
-                valveEspLoop = nil
-            end
-            removeValveEsp()
-        end
-    end
-})
-Tabs.Main:AddColorpicker("ValveEspColor", {
-    Title = "Valve ESP Color",
-    Default = valveEspColor,
-    Callback = function(color)
-        valveEspColor = color
-    end
-})
-
--- Puzzle Number ESP (für jedes Objekt "23","34","31" -> "Cube Puzzle")
-Tabs.Main:AddToggle("PuzzleNumberEspToggle", {
-    Title = "Enable Puzzle Number ESP",
-    Default = false,
-    Callback = function(state)
-        puzzleNumberEspActive = state
-        if state then
-            if puzzleNumberEspLoop then task.cancel(puzzleNumberEspLoop) end
-            puzzleNumberEspLoop = task.spawn(puzzleNumberEspLoopFunction)
-        else
-            if puzzleNumberEspLoop then
-                task.cancel(puzzleNumberEspLoop)
-                puzzleNumberEspLoop = nil
-            end
-            removePuzzleNumberEsp()
+            game.Lighting.Brightness = 1
+            game.Lighting.ClockTime = 14
+            game.Lighting.FogEnd = 1000
+            game.Lighting.GlobalShadows = true
         end
     end
 })
 
+Tabs.Visual:AddToggle("NoFogToggle", {
+    Title = "Disable Fog",
+    Default = false,
+    Callback = function(state)
+        if state then
+            noFogActive = true
+            if noFogLoop then task.cancel(noFogLoop) end
+            noFogLoop = task.spawn(noFogLoopFunction)
+        else
+            noFogActive = false
+            if noFogLoop then task.cancel(noFogLoop) end
+            game.Lighting.FogStart = 0
+            game.Lighting.FogEnd = 1000
+        end
+    end
+})
 
+-----------------------------
+-- Settings-Tab
+-----------------------------
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 
@@ -658,10 +668,13 @@ InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 SaveManager:LoadAutoloadConfig()
 
+-----------------------------
+-- Abschluss
+-----------------------------
 Fluent:Notify({
     Title = "Tapetenputzer",
     Content = "Script Loaded!",
     Duration = 5
 })
 
-Window:SelectTab(1)
+Window:SelectTab(1) -- Standardmäßig den ersten Tab (ESP) auswählen
