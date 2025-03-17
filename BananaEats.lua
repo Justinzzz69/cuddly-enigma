@@ -69,7 +69,7 @@ local noFogLoop = nil
 
 -- NEU: Fly-Funktion
 local flyActive = false
-local flySpeed = 50
+local flySpeed = 50  -- Standardwert
 local flyBodyVelocity = nil
 local flyBodyGyro = nil
 local flyConnection = nil
@@ -677,7 +677,22 @@ Tabs.Player:AddButton({
     end
 })
 
--- NEU: Toggle für Fly (anstatt NoCollision)
+-- NEU: Fly Toggle und Fly Speed Input
+local FlySpeedInput = Tabs.Player:AddInput("FlySpeedInput", {
+    Title = "Set Fly Speed",
+    Placeholder = "Default = 50",
+    Numeric = true
+})
+Tabs.Player:AddButton({
+    Title = "Set Fly Speed",
+    Description = "Set fly speed of Player",
+    Callback = function()
+        local fSpeed = tonumber(FlySpeedInput.Value)
+        if fSpeed and fSpeed > 0 then
+            flySpeed = fSpeed
+        end
+    end
+})
 Tabs.Player:AddToggle("FlyToggle", {
     Title = "Fly (Local)",
     Default = false,
