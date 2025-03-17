@@ -1,13 +1,7 @@
------------------------------
--- Bibliotheken laden
------------------------------
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
------------------------------
--- Fenster und Tabs erstellen
------------------------------
 local Window = Fluent:CreateWindow({
     Title = "Banana Eats Script",
     SubTitle = "by Tapetenputzer",
@@ -18,7 +12,6 @@ local Window = Fluent:CreateWindow({
     MinimizeKey = Enum.KeyCode.LeftControl
 })
 
--- Vier Haupt-Tabs
 local Tabs = {
     ESP = Window:AddTab({ Title = "ESP", Icon = "eye" }),
     Player = Window:AddTab({ Title = "Player", Icon = "user" }),
@@ -26,13 +19,9 @@ local Tabs = {
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
 
--- Im ESP-Tab zwei Sektionen: Toggles & Colors
 local ESPTogglesSection = Tabs.ESP:AddSection("ESP Toggles")
 local ESPColorsSection = Tabs.ESP:AddSection("ESP Colors")
 
------------------------------
--- Variablen / Status Flags
------------------------------
 local cakeEspActive = false
 local cakeEspLoop = nil
 local cakeEspColor = Color3.fromRGB(255, 255, 0)
@@ -61,15 +50,14 @@ local labeledValves = {}
 
 local puzzleNumberEspActive = false
 local puzzleNumberEspLoop = nil
-local puzzleNumberEspColor = Color3.fromRGB(255, 255, 255) -- Anpassbar
+local puzzleNumberEspColor = Color3.fromRGB(255, 255, 255)
 local puzzleNumbers = {["23"] = true, ["34"] = true, ["31"] = true}
 
 local noFogActive = false
 local noFogLoop = nil
 
--- NEU: Fly-Funktion
 local flyActive = false
-local flySpeed = 50  -- Standardwert
+local flySpeed = 50
 local flyBodyVelocity = nil
 local flyBodyGyro = nil
 local flyConnection = nil
@@ -77,15 +65,11 @@ local flyConnection = nil
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
------------------------------
--- Hilfsfunktion: BillboardGui
------------------------------
 local function createBillboard(text)
     local billboard = Instance.new("BillboardGui")
     billboard.Size = UDim2.new(0, 100, 0, 50)
     billboard.StudsOffset = Vector3.new(0, 2, 0)
     billboard.AlwaysOnTop = true
-
     local textLabel = Instance.new("TextLabel")
     textLabel.Size = UDim2.new(1, 0, 1, 0)
     textLabel.BackgroundTransparency = 1
@@ -94,22 +78,14 @@ local function createBillboard(text)
     textLabel.Font = Enum.Font.SourceSans
     textLabel.TextColor3 = Color3.new(1, 1, 1)
     textLabel.Parent = billboard
-
     return billboard
 end
 
------------------------------
--- Entferner-Funktionen
------------------------------
 local function removeCakeEsp()
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") then
-            if obj:FindFirstChild("CakeESP") then
-                obj.CakeESP:Destroy()
-            end
-            if obj:FindFirstChild("CakeLabel") then
-                obj.CakeLabel:Destroy()
-            end
+            if obj:FindFirstChild("CakeESP") then obj.CakeESP:Destroy() end
+            if obj:FindFirstChild("CakeLabel") then obj.CakeLabel:Destroy() end
         end
     end
 end
@@ -117,12 +93,8 @@ end
 local function removeCoinEsp()
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") then
-            if obj:FindFirstChild("CoinESP") then
-                obj.CoinESP:Destroy()
-            end
-            if obj:FindFirstChild("CoinLabel") then
-                obj.CoinLabel:Destroy()
-            end
+            if obj:FindFirstChild("CoinESP") then obj.CoinESP:Destroy() end
+            if obj:FindFirstChild("CoinLabel") then obj.CoinLabel:Destroy() end
         end
     end
 end
@@ -143,9 +115,7 @@ local function removeNametags()
     for _, player in pairs(game.Players:GetPlayers()) do
         if player.Character and player.Character:FindFirstChild("Head") then
             local tag = player.Character.Head:FindFirstChild("Nametag")
-            if tag then
-                tag:Destroy()
-            end
+            if tag then tag:Destroy() end
         end
     end
 end
@@ -153,12 +123,8 @@ end
 local function removeValveEsp()
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") then
-            if obj:FindFirstChild("ValveESP") then
-                obj.ValveESP:Destroy()
-            end
-            if obj:FindFirstChild("ValveLabel") then
-                obj.ValveLabel:Destroy()
-            end
+            if obj:FindFirstChild("ValveESP") then obj.ValveESP:Destroy() end
+            if obj:FindFirstChild("ValveLabel") then obj.ValveLabel:Destroy() end
         end
     end
     labeledValves = {}
@@ -167,24 +133,16 @@ end
 local function removePuzzleNumberEsp()
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") and obj.Parent and obj.Parent.Name == "Buttons" and puzzleNumbers[obj.Name] then
-            if obj:FindFirstChild("PuzzleNumberESP") then
-                obj.PuzzleNumberESP:Destroy()
-            end
-            if obj:FindFirstChild("PuzzleNumberLabel") then
-                obj.PuzzleNumberLabel:Destroy()
-            end
+            if obj:FindFirstChild("PuzzleNumberESP") then obj.PuzzleNumberESP:Destroy() end
+            if obj:FindFirstChild("PuzzleNumberLabel") then obj.PuzzleNumberLabel:Destroy() end
         end
     end
 end
 
------------------------------
--- Check-/Loop-Funktionen
------------------------------
 local function checkCakeEsp(obj)
     if not obj:IsA("BasePart") then return end
     if (obj.Parent and obj.Parent.Name == "Cake" and tonumber(obj.Name))
        or (obj.Parent and obj.Parent.Name == "CakePlate" and obj.Name == "Plate") then
-
         if not obj:FindFirstChild("CakeESP") then
             local esp = Instance.new("BoxHandleAdornment")
             esp.Name = "CakeESP"
@@ -196,14 +154,11 @@ local function checkCakeEsp(obj)
             esp.Color3 = cakeEspColor
             esp.Parent = obj
         end
-
         if not obj:FindFirstChild("CakeLabel") then
             local labelText = "Cake Plate"
             if obj.Parent and obj.Parent.Name == "Cake" then
                 local num = tonumber(obj.Name)
-                if num and num >= 1 and num <= 6 then
-                    labelText = "Main Plate"
-                end
+                if num and num >= 1 and num <= 6 then labelText = "Main Plate" end
             end
             local billboard = createBillboard(labelText)
             billboard.Name = "CakeLabel"
@@ -224,7 +179,6 @@ end
 local function checkCoinEsp(obj)
     if not obj:IsA("BasePart") then return end
     if obj.Parent and obj.Parent.Name == "Tokens" and obj.Name == "Token" then
-
         if not obj:FindFirstChild("CoinESP") then
             local esp = Instance.new("BoxHandleAdornment")
             esp.Name = "CoinESP"
@@ -236,7 +190,6 @@ local function checkCoinEsp(obj)
             esp.Color3 = coinEspColor
             esp.Parent = obj
         end
-
         if not obj:FindFirstChild("CoinLabel") then
             local billboard = createBillboard("Coin")
             billboard.Name = "CoinLabel"
@@ -259,7 +212,6 @@ local function checkChams()
         if player ~= game.Players.LocalPlayer and player.Character then
             local isSameTeam = (player.TeamColor == game.Players.LocalPlayer.TeamColor)
             local color = isSameTeam and teamChamColor or enemyChamColor
-
             for _, part in pairs(player.Character:GetDescendants()) do
                 if part:IsA("BasePart") then
                     local cham = part:FindFirstChild("Cham")
@@ -318,7 +270,6 @@ local function checkValveEsp(obj)
     if not obj:IsA("BasePart") then return end
     local parent = obj.Parent
     if not parent then return end
-
     local isValve = false
     if parent.Name == "Valve" or parent.Name == "ValvePuzzle" then
         isValve = true
@@ -326,12 +277,8 @@ local function checkValveEsp(obj)
         isValve = true
     end
     if not isValve then return end
-
-    if labeledValves[parent] then
-        return
-    end
+    if labeledValves[parent] then return end
     labeledValves[parent] = true
-
     local basePart = obj
     if parent:IsA("Model") then
         if parent.PrimaryPart then
@@ -345,7 +292,6 @@ local function checkValveEsp(obj)
             end
         end
     end
-
     if not basePart:FindFirstChild("ValveESP") then
         local esp = Instance.new("BoxHandleAdornment")
         esp.Name = "ValveESP"
@@ -357,7 +303,6 @@ local function checkValveEsp(obj)
         esp.Color3 = valveEspColor
         esp.Parent = basePart
     end
-
     if not basePart:FindFirstChild("ValveLabel") then
         local billboard = createBillboard("Valve")
         billboard.Name = "ValveLabel"
@@ -375,7 +320,6 @@ local function valveEspLoopFunction()
     end
 end
 
--- Puzzle Number ESP: JEDER Puzzle-Teil (Name "23","34","31") bekommt ein eigenes Label
 local function checkPuzzleNumberEsp(obj)
     if not obj:IsA("BasePart") then return end
     if obj.Parent and obj.Parent.Name == "Buttons" and puzzleNumbers[obj.Name] then
@@ -415,7 +359,6 @@ local function noFogLoopFunction()
     end
 end
 
--- NEU: Fly-Funktion
 local function enableFly()
     local character = game.Players.LocalPlayer.Character
     if character and character:FindFirstChild("HumanoidRootPart") then
@@ -473,9 +416,6 @@ local function disableFly()
     end
 end
 
------------------------------
--- ESP-Tab: Toggles
------------------------------
 ESPTogglesSection:AddToggle("CakeEspToggle", {
     Title = "Enable Cake ESP",
     Default = false,
@@ -576,60 +516,42 @@ ESPTogglesSection:AddToggle("PuzzleNumberEspToggle", {
     end
 })
 
------------------------------
--- ESP-Tab: Colors
------------------------------
 ESPColorsSection:AddColorpicker("CakeEspColor", {
     Title = "Cake ESP Color",
     Default = cakeEspColor,
-    Callback = function(color)
-        cakeEspColor = color
-    end
+    Callback = function(color) cakeEspColor = color end
 })
 
 ESPColorsSection:AddColorpicker("CoinEspColor", {
     Title = "Coin ESP Color",
     Default = coinEspColor,
-    Callback = function(color)
-        coinEspColor = color
-    end
+    Callback = function(color) coinEspColor = color end
 })
 
 ESPColorsSection:AddColorpicker("EnemyChamsColor", {
     Title = "Enemy Chams Color",
     Default = enemyChamColor,
-    Callback = function(color)
-        enemyChamColor = color
-    end
+    Callback = function(color) enemyChamColor = color end
 })
 
 ESPColorsSection:AddColorpicker("TeamChamsColor", {
     Title = "Team Chams Color",
     Default = teamChamColor,
-    Callback = function(color)
-        teamChamColor = color
-    end
+    Callback = function(color) teamChamColor = color end
 })
 
 ESPColorsSection:AddColorpicker("ValveEspColor", {
     Title = "Valve ESP Color",
     Default = valveEspColor,
-    Callback = function(color)
-        valveEspColor = color
-    end
+    Callback = function(color) valveEspColor = color end
 })
 
 ESPColorsSection:AddColorpicker("PuzzleNumberEspColor", {
     Title = "Puzzle Number Color",
     Default = puzzleNumberEspColor,
-    Callback = function(color)
-        puzzleNumberEspColor = color
-    end
+    Callback = function(color) puzzleNumberEspColor = color end
 })
 
------------------------------
--- Player-Tab: Speed & Fly
------------------------------
 local SpeedInput = Tabs.Player:AddInput("SpeedInput", {
     Title = "Set Speed",
     Placeholder = "Default = 16",
@@ -677,7 +599,6 @@ Tabs.Player:AddButton({
     end
 })
 
--- NEU: Fly Toggle und Fly Speed Input
 local FlySpeedInput = Tabs.Player:AddInput("FlySpeedInput", {
     Title = "Set Fly Speed",
     Placeholder = "Default = 50",
@@ -697,17 +618,10 @@ Tabs.Player:AddToggle("FlyToggle", {
     Title = "Fly (Local)",
     Default = false,
     Callback = function(state)
-        if state then
-            enableFly()
-        else
-            disableFly()
-        end
+        if state then enableFly() else disableFly() end
     end
 })
 
------------------------------
--- Visual-Tab
------------------------------
 Tabs.Visual:AddToggle("FullbrightToggle", {
     Title = "Enable Fullbright",
     Default = false,
@@ -744,29 +658,14 @@ Tabs.Visual:AddToggle("NoFogToggle", {
     end
 })
 
------------------------------
--- Settings-Tab
------------------------------
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
-
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({})
-
 InterfaceManager:SetFolder("FluentScriptHub")
 SaveManager:SetFolder("FluentScriptHub/specific-game")
-
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 SaveManager:LoadAutoloadConfig()
-
------------------------------
--- Abschluss
------------------------------
-Fluent:Notify({
-    Title = "Tapetenputzer",
-    Content = "Script Loaded!",
-    Duration = 5
-})
-
-Window:SelectTab(1) -- Standardmäßig den ersten Tab (ESP) auswählen
+Fluent:Notify({ Title = "Tapetenputzer", Content = "Script Loaded!", Duration = 5 })
+Window:SelectTab(1)
