@@ -59,16 +59,19 @@ local valveEspLoop = nil
 local valveEspColor = Color3.fromRGB(0, 255, 255)
 local labeledValves = {}
 
+-- Puzzle Number ESP (jeder einzelne Teil mit Label)
 local puzzleNumberEspActive = false
 local puzzleNumberEspLoop = nil
 local puzzleNumberEspColor = Color3.fromRGB(255, 255, 255)
 local puzzleNumbers = {["23"] = true, ["34"] = true, ["31"] = true}
 
--- Neuer Flag: Erzeugt nur ein einziges Label pro Durchlauf
-local puzzleLabelCreated = false
-
+-- No Fog
 local noFogActive = false
 local noFogLoop = nil
+
+-- NEU: No Collision / Noclip
+local noCollisionActive = false
+local noCollisionLoop = nil
 
 -----------------------------
 -- Hilfsfunktion: BillboardGui
@@ -372,13 +375,10 @@ local function valveEspLoopFunction()
     end
 end
 
--- Puzzle Number ESP:
--- => Jedes Puzzle-Teil bekommt ein BoxHandleAdornment
--- => Nur EIN Label pro Puzzle-Model
+-- Puzzle Number ESP: JEDER Puzzle-Teil (Name "23","34","31") bekommt ein Label
 local function checkPuzzleNumberEsp(obj)
     if not obj:IsA("BasePart") then return end
     if obj.Parent and obj.Parent.Name == "Buttons" and puzzleNumbers[obj.Name] then
-        -- 1) Erstelle Box-ESP für jedes Puzzle-Teil
         if not obj:FindFirstChild("PuzzleNumberESP") then
             local esp = Instance.new("BoxHandleAdornment")
             esp.Name = "PuzzleNumberESP"
@@ -390,41 +390,45 @@ local function checkPuzzleNumberEsp(obj)
             esp.Color3 = puzzleNumberEspColor
             esp.Parent = obj
         end
-
-        -- 2) Erstelle nur EIN Label pro gesamtem Puzzle, z.B. an "CubePuzzle"
-        if not puzzleLabelCreated then
-            -- Versuche das Model "CubePuzzle" (oder "PicturePuzzle") zu finden
-            local puzzleModel = obj:FindFirstAncestorWhichIsA("Model")
-            if puzzleModel and puzzleModel.Name == "CubePuzzle" then
-                -- Wenn es eine PrimaryPart gibt, platzieren wir dort das Label
-                local partToLabel = puzzleModel.PrimaryPart or obj
-                if not partToLabel:FindFirstChild("PuzzleNumberLabel") then
-                    local billboard = createBillboard("Cube Puzzle")
-                    billboard.Name = "PuzzleNumberLabel"
-                    billboard.Parent = partToLabel
-                end
-            else
-                -- Fallback: Label an das aktuelle Objekt, falls wir kein Model finden
-                if not obj:FindFirstChild("PuzzleNumberLabel") then
-                    local billboard = createBillboard("Cube Puzzle")
-                    billboard.Name = "PuzzleNumberLabel"
-                    billboard.Parent = obj
-                end
-            end
-
-            -- Nur einmal pro Schleifendurchlauf
-            puzzleLabelCreated = true
+        if not obj:FindFirstChild("PuzzleNumberLabel") then
+            local billboard = createBillboard("Cube Puzzle")
+            billboard.Name = "PuzzleNumberLabel"
+            billboard.Parent = obj
         end
     end
 end
 
 local function puzzleNumberEspLoopFunction()
     while puzzleNumberEspActive do
-        puzzleLabelCreated = false  -- Zu Beginn jeder Schleifeniteration zurücksetzen
         for _, obj in pairs(workspace:GetDescendants()) do
             checkPuzzleNumberEsp(obj)
         end
         wait(1)
+    end
+end
+
+-- NEU: NoCollision / Noclip
+local function noCollisionLoopFunction()
+    while noCollisionActive do
+        -- 1) Spieler selbst: Alle BaseParts auf CanCollide = false
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+        -- 2) Bestimmte Objekte, z.B. "peel" oder "banana"
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                -- Alle Objekte, deren Name "peel" oder "banana" enthält
+                if string.find(string.lower(obj.Name), "peel") or string.find(string.lower(obj.Name), "banana") then
+                    obj.CanCollide = false
+                end
+            end
+        end
+        wait(0.5)
     end
 end
 
@@ -636,6 +640,22 @@ Tabs.Player:AddButton({
         if speedLoop then
             task.cancel(speedLoop)
             speedLoop = nil
+        end
+    end
+})
+
+-- Toggle: No Collision
+Tabs.Player:AddToggle("NoCollisionToggle", {
+    Title = "No Collision (Local)",
+    Default = false,
+    Callback = function(state)
+        noCollisionActive = state
+        if state then
+            if noCollisionLoop then task.cancel(noCollisionLoop) end
+            noCollisionLoop = task.spawn(noCollisionLoopFunction)
+        else
+            if noCollisionLoop then task.cancel(noCollisionLoop) end
+            noCollisionLoop = nil
         end
     end
 })
