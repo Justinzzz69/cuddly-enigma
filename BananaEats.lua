@@ -59,19 +59,23 @@ local valveEspLoop = nil
 local valveEspColor = Color3.fromRGB(0, 255, 255)
 local labeledValves = {}
 
--- Puzzle Number ESP (jeder einzelne Teil mit Label)
 local puzzleNumberEspActive = false
 local puzzleNumberEspLoop = nil
-local puzzleNumberEspColor = Color3.fromRGB(255, 255, 255)
+local puzzleNumberEspColor = Color3.fromRGB(255, 255, 255) -- Anpassbar
 local puzzleNumbers = {["23"] = true, ["34"] = true, ["31"] = true}
 
--- No Fog
 local noFogActive = false
 local noFogLoop = nil
 
--- NEU: No Collision / Noclip
-local noCollisionActive = false
-local noCollisionLoop = nil
+-- NEU: Fly-Funktion
+local flyActive = false
+local flySpeed = 50
+local flyBodyVelocity = nil
+local flyBodyGyro = nil
+local flyConnection = nil
+
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 -----------------------------
 -- Hilfsfunktion: BillboardGui
@@ -287,15 +291,11 @@ end
 
 local function checkNametags()
     for _, player in pairs(game.Players:GetPlayers()) do
-        if player ~= game.Players.LocalPlayer
-           and player.Character
-           and player.Character:FindFirstChild("Head") then
-
+        if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
             local isSameTeam = (player.TeamColor == game.Players.LocalPlayer.TeamColor)
             local color = isSameTeam and teamChamColor or enemyChamColor
             local head = player.Character.Head
             local existingTag = head:FindFirstChild("Nametag")
-
             if not existingTag then
                 local billboard = createBillboard(player.Name)
                 billboard.Name = "Nametag"
@@ -375,7 +375,7 @@ local function valveEspLoopFunction()
     end
 end
 
--- Puzzle Number ESP: JEDER Puzzle-Teil (Name "23","34","31") bekommt ein Label
+-- Puzzle Number ESP: JEDER Puzzle-Teil (Name "23","34","31") bekommt ein eigenes Label
 local function checkPuzzleNumberEsp(obj)
     if not obj:IsA("BasePart") then return end
     if obj.Parent and obj.Parent.Name == "Buttons" and puzzleNumbers[obj.Name] then
@@ -407,36 +407,69 @@ local function puzzleNumberEspLoopFunction()
     end
 end
 
--- NEU: NoCollision / Noclip
-local function noCollisionLoopFunction()
-    while noCollisionActive do
-        -- 1) Spieler selbst: Alle BaseParts auf CanCollide = false
-        local char = game.Players.LocalPlayer.Character
-        if char then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-        end
-        -- 2) Bestimmte Objekte, z.B. "peel" oder "banana"
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("BasePart") then
-                -- Alle Objekte, deren Name "peel" oder "banana" enthält
-                if string.find(string.lower(obj.Name), "peel") or string.find(string.lower(obj.Name), "banana") then
-                    obj.CanCollide = false
-                end
-            end
-        end
-        wait(0.5)
-    end
-end
-
 local function noFogLoopFunction()
     while noFogActive do
         game.Lighting.FogStart = 0
         game.Lighting.FogEnd = 1e9
         wait(0.5)
+    end
+end
+
+-- NEU: Fly-Funktion
+local function enableFly()
+    local character = game.Players.LocalPlayer.Character
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        local root = character.HumanoidRootPart
+        flyBodyVelocity = Instance.new("BodyVelocity", root)
+        flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+        flyBodyGyro = Instance.new("BodyGyro", root)
+        flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+        flyBodyGyro.CFrame = root.CFrame
+        flyActive = true
+        flyConnection = RunService.RenderStepped:Connect(function()
+            local direction = Vector3.new(0, 0, 0)
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                direction = direction + workspace.CurrentCamera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                direction = direction - workspace.CurrentCamera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                direction = direction - workspace.CurrentCamera.CFrame.RightVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                direction = direction + workspace.CurrentCamera.CFrame.RightVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                direction = direction + Vector3.new(0, 1, 0)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+                direction = direction - Vector3.new(0, 1, 0)
+            end
+            if direction.Magnitude > 0 then
+                flyBodyVelocity.Velocity = direction.Unit * flySpeed
+            else
+                flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            end
+            flyBodyGyro.CFrame = workspace.CurrentCamera.CFrame
+        end)
+    end
+end
+
+local function disableFly()
+    flyActive = false
+    if flyBodyVelocity then
+        flyBodyVelocity:Destroy()
+        flyBodyVelocity = nil
+    end
+    if flyBodyGyro then
+        flyBodyGyro:Destroy()
+        flyBodyGyro = nil
+    end
+    if flyConnection then
+        flyConnection:Disconnect()
+        flyConnection = nil
     end
 end
 
@@ -595,7 +628,7 @@ ESPColorsSection:AddColorpicker("PuzzleNumberEspColor", {
 })
 
 -----------------------------
--- Player-Tab
+-- Player-Tab: Speed & Fly
 -----------------------------
 local SpeedInput = Tabs.Player:AddInput("SpeedInput", {
     Title = "Set Speed",
@@ -644,18 +677,15 @@ Tabs.Player:AddButton({
     end
 })
 
--- Toggle: No Collision
-Tabs.Player:AddToggle("NoCollisionToggle", {
-    Title = "No Collision (Local)",
+-- NEU: Toggle für Fly (anstatt NoCollision)
+Tabs.Player:AddToggle("FlyToggle", {
+    Title = "Fly (Local)",
     Default = false,
     Callback = function(state)
-        noCollisionActive = state
         if state then
-            if noCollisionLoop then task.cancel(noCollisionLoop) end
-            noCollisionLoop = task.spawn(noCollisionLoopFunction)
+            enableFly()
         else
-            if noCollisionLoop then task.cancel(noCollisionLoop) end
-            noCollisionLoop = nil
+            disableFly()
         end
     end
 })
