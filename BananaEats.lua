@@ -22,17 +22,12 @@ local Tabs = {
 local ESPTogglesSection = Tabs.ESP:AddSection("ESP Toggles")
 local ESPColorsSection = Tabs.ESP:AddSection("ESP Colors")
 
--- Nametag- und Other-Label-Einstellungen im Visual-Tab
-local NametagSection = Tabs.Visual:AddSection("Nametag Settings")
-local OtherLabelSection = Tabs.Visual:AddSection("Other Label Settings")
-
--- Nametag Defaults
+-- Feste Werte für Nametags und andere Labels
 local nametagWidth = 150
 local nametagHeight = 50
 local nametagOffsetY = 3
 local nametagTextSize = 16
 
--- Other Labels Defaults
 local labelWidth = 150
 local labelHeight = 50
 local labelOffsetY = 3
@@ -80,11 +75,16 @@ local puzzleEspColor = Color3.fromRGB(0, 255, 0)
 local noFogActive = false
 local noFogLoop = nil
 
+-- Fly
 local flyActive = false
 local flySpeed = 50
 local flyBodyVelocity = nil
 local flyBodyGyro = nil
 local flyConnection = nil
+
+-- Anti-AFK (jeder 5 Minuten einen Sprung)
+local antiAfkActive = false
+local antiAfkLoop = nil
 
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -118,45 +118,12 @@ local function createBillboard(text, isNametag)
     textLabel.TextStrokeTransparency = 0.3
     textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
     textLabel.Parent = billboard
+
     return billboard
 end
 
 --------------------------------------------------
--- Update-Funktionen für Labels
---------------------------------------------------
-local function updateAllNametags()
-    for _, player in pairs(game.Players:GetPlayers()) do
-        if player.Character and player.Character:FindFirstChild("Head") then
-            local head = player.Character.Head
-            local existingTag = head:FindFirstChild("Nametag")
-            if existingTag and existingTag:IsA("BillboardGui") then
-                existingTag.Size = UDim2.new(0, nametagWidth, 0, nametagHeight)
-                existingTag.StudsOffset = Vector3.new(0, nametagOffsetY, 0)
-                local txt = existingTag:FindFirstChildOfClass("TextLabel")
-                if txt then txt.TextSize = nametagTextSize end
-            end
-        end
-    end
-end
-
-local function updateAllOtherLabels()
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("BillboardGui") and obj.Name ~= "Nametag" then
-            obj.Size = UDim2.new(0, labelWidth, 0, labelHeight)
-            obj.StudsOffset = Vector3.new(0, labelOffsetY, 0)
-            local txt = obj:FindFirstChildOfClass("TextLabel")
-            if txt then txt.TextSize = labelTextSize end
-        end
-    end
-end
-
-local function updateAllLabels()
-    updateAllNametags()
-    updateAllOtherLabels()
-end
-
---------------------------------------------------
--- Entferner-Funktionen (deine vorhandenen Remove-Funktionen übernehmen)
+-- Entferner-Funktionen
 --------------------------------------------------
 local function removeCakeEsp()
     for _, obj in pairs(workspace:GetDescendants()) do
@@ -469,6 +436,9 @@ local function noFogLoopFunction()
     end
 end
 
+-----------------------------------------------------------------------
+-- Fly-Funktionen
+-----------------------------------------------------------------------
 local function enableFly()
     local character = game.Players.LocalPlayer.Character
     if character and character:FindFirstChild("HumanoidRootPart") then
@@ -526,9 +496,33 @@ local function disableFly()
     end
 end
 
---------------------------------------------------
+-----------------------------------------------------------------------
+-- Anti-AFK-Funktion: Springt alle 5 Minuten
+-----------------------------------------------------------------------
+local function enableAntiAfk()
+    antiAfkActive = true
+    antiAfkLoop = task.spawn(function()
+        while antiAfkActive do
+            local character = game.Players.LocalPlayer.Character
+            if character and character:FindFirstChild("Humanoid") then
+                character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+            wait(300)  -- 5 Minuten warten
+        end
+    end)
+end
+
+local function disableAntiAfk()
+    antiAfkActive = false
+    if antiAfkLoop then
+        task.cancel(antiAfkLoop)
+        antiAfkLoop = nil
+    end
+end
+
+-----------------------------------------------------------------------
 -- TOGGLES
---------------------------------------------------
+-----------------------------------------------------------------------
 ESPTogglesSection:AddToggle("CakeEspToggle", {
     Title = "Enable Cake ESP",
     Default = false,
@@ -645,9 +639,9 @@ ESPTogglesSection:AddToggle("CodePuzzleEspToggle", {
     end
 })
 
---------------------------------------------------
+-----------------------------------------------------------------------
 -- COLORPICKERS
---------------------------------------------------
+-----------------------------------------------------------------------
 ESPColorsSection:AddColorpicker("CakeEspColor", {
     Title = "Cake ESP Color",
     Default = cakeEspColor,
@@ -690,9 +684,9 @@ ESPColorsSection:AddColorpicker("PuzzleObjectEspColor", {
     Callback = function(color) puzzleEspColor = color end
 })
 
---------------------------------------------------
+-----------------------------------------------------------------------
 -- PLAYER
---------------------------------------------------
+-----------------------------------------------------------------------
 local SpeedInput = Tabs.Player:AddInput("SpeedInput", {
     Title = "Set Speed",
     Placeholder = "Default = 16",
@@ -740,6 +734,19 @@ Tabs.Player:AddButton({
     end
 })
 
+-- Fly Controls (neu sortiert: erst Fly Toggle, dann Fly Speed Input und Button)
+Tabs.Player:AddToggle("FlyToggle", {
+    Title = "Fly (Local)",
+    Default = false,
+    Callback = function(state)
+        if state then
+            enableFly()
+        else
+            disableFly()
+        end
+    end
+})
+
 local FlySpeedInput = Tabs.Player:AddInput("FlySpeedInput", {
     Title = "Set Fly Speed",
     Placeholder = "Default = 50",
@@ -755,17 +762,23 @@ Tabs.Player:AddButton({
         end
     end
 })
-Tabs.Player:AddToggle("FlyToggle", {
-    Title = "Fly (Local)",
+
+-- Anti-AFK Toggle (Springt alle 5 Minuten)
+Tabs.Player:AddToggle("AntiAFKToggle", {
+    Title = "Enable Anti-AFK",
     Default = false,
     Callback = function(state)
-        if state then enableFly() else disableFly() end
+        if state then
+            enableAntiAfk()
+        else
+            disableAntiAfk()
+        end
     end
 })
 
---------------------------------------------------
+-----------------------------------------------------------------------
 -- VISUAL
---------------------------------------------------
+-----------------------------------------------------------------------
 Tabs.Visual:AddToggle("FullbrightToggle", {
     Title = "Enable Fullbright",
     Default = false,
@@ -802,9 +815,9 @@ Tabs.Visual:AddToggle("NoFogToggle", {
     end
 })
 
---------------------------------------------------
+-----------------------------------------------------------------------
 -- SETTINGS
---------------------------------------------------
+-----------------------------------------------------------------------
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 SaveManager:IgnoreThemeSettings()
