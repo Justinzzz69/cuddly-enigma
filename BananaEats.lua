@@ -22,60 +22,64 @@ local Tabs = {
 local ESPTogglesSection = Tabs.ESP:AddSection("ESP Toggles")
 local ESPColorsSection = Tabs.ESP:AddSection("ESP Colors")
 
--- Cake ESP
+-- Nametag- und Other-Label-Einstellungen im Visual-Tab
+local NametagSection = Tabs.Visual:AddSection("Nametag Settings")
+local OtherLabelSection = Tabs.Visual:AddSection("Other Label Settings")
+
+-- Nametag Defaults
+local nametagWidth = 150
+local nametagHeight = 50
+local nametagOffsetY = 3
+local nametagTextSize = 16
+
+-- Other Labels Defaults
+local labelWidth = 150
+local labelHeight = 50
+local labelOffsetY = 3
+local labelTextSize = 16
+
+--------------------------------------------------
+-- ESP-Variablen
+--------------------------------------------------
 local cakeEspActive = false
 local cakeEspLoop = nil
 local cakeEspColor = Color3.fromRGB(255, 255, 0)
 
--- Coin ESP (Loop alle 0,5 Sekunden)
 local coinEspActive = false
 local coinEspLoop = nil
 local coinEspColor = Color3.fromRGB(0, 255, 0)
 
--- Player Chams
 local chamsActive = false
 local chamsLoop = nil
 local enemyChamColor = Color3.fromRGB(255, 0, 0)
 local teamChamColor = Color3.fromRGB(0, 255, 0)
 
--- Nametags
 local nametagActive = false
 local nametagLoop = nil
 
--- Fullbright
 local fullbrightActive = false
 
--- Speed
 local speedLoop = nil
 local currentSpeed = 16
 
--- Valve ESP
 local valveEspActive = false
 local valveEspLoop = nil
 local valveEspColor = Color3.fromRGB(0, 255, 255)
 local labeledValves = {}
 
--- Cube Puzzle ESP
 local puzzleNumberEspActive = false
 local puzzleNumberEspLoop = nil
 local puzzleNumberEspColor = Color3.fromRGB(255, 255, 255)
 local puzzleNumbers = {["23"] = true, ["34"] = true, ["31"] = true}
 
--- Code Puzzle ESP
+-- Code Puzzle ESP (sucht nach "combinationpuzzle" und zeigt nur ein Label "Code Puzzle")
 local puzzleEspActive = false
 local puzzleEspLoop = nil
 local puzzleEspColor = Color3.fromRGB(0, 255, 0)
 
--- Hidden Code ESP
-local hiddenCodeEspActive = false
-local hiddenCodeEspLoop = nil
-local hiddenCodeEspColor = Color3.fromRGB(0, 0, 255)
-
--- No Fog
 local noFogActive = false
 local noFogLoop = nil
 
--- Fly
 local flyActive = false
 local flySpeed = 50
 local flyBodyVelocity = nil
@@ -85,16 +89,30 @@ local flyConnection = nil
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
-local function createBillboard(text)
+--------------------------------------------------
+-- Billboard-Funktion (isNametag = true für Nametags)
+--------------------------------------------------
+local function createBillboard(text, isNametag)
     local billboard = Instance.new("BillboardGui")
-    billboard.Size = UDim2.new(0, 150, 0, 50)
-    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    if isNametag then
+        billboard.Size = UDim2.new(0, nametagWidth, 0, nametagHeight)
+        billboard.StudsOffset = Vector3.new(0, nametagOffsetY, 0)
+    else
+        billboard.Size = UDim2.new(0, labelWidth, 0, labelHeight)
+        billboard.StudsOffset = Vector3.new(0, labelOffsetY, 0)
+    end
     billboard.AlwaysOnTop = true
+
     local textLabel = Instance.new("TextLabel")
     textLabel.Size = UDim2.new(1, 0, 1, 0)
     textLabel.BackgroundTransparency = 1
     textLabel.Text = text
-    textLabel.TextScaled = true
+    textLabel.TextScaled = false
+    if isNametag then
+        textLabel.TextSize = nametagTextSize
+    else
+        textLabel.TextSize = labelTextSize
+    end
     textLabel.Font = Enum.Font.GothamSemibold
     textLabel.TextColor3 = Color3.new(1, 1, 1)
     textLabel.TextStrokeTransparency = 0.3
@@ -104,7 +122,41 @@ local function createBillboard(text)
 end
 
 --------------------------------------------------
--- Entferner-Funktionen
+-- Update-Funktionen für Labels
+--------------------------------------------------
+local function updateAllNametags()
+    for _, player in pairs(game.Players:GetPlayers()) do
+        if player.Character and player.Character:FindFirstChild("Head") then
+            local head = player.Character.Head
+            local existingTag = head:FindFirstChild("Nametag")
+            if existingTag and existingTag:IsA("BillboardGui") then
+                existingTag.Size = UDim2.new(0, nametagWidth, 0, nametagHeight)
+                existingTag.StudsOffset = Vector3.new(0, nametagOffsetY, 0)
+                local txt = existingTag:FindFirstChildOfClass("TextLabel")
+                if txt then txt.TextSize = nametagTextSize end
+            end
+        end
+    end
+end
+
+local function updateAllOtherLabels()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("BillboardGui") and obj.Name ~= "Nametag" then
+            obj.Size = UDim2.new(0, labelWidth, 0, labelHeight)
+            obj.StudsOffset = Vector3.new(0, labelOffsetY, 0)
+            local txt = obj:FindFirstChildOfClass("TextLabel")
+            if txt then txt.TextSize = labelTextSize end
+        end
+    end
+end
+
+local function updateAllLabels()
+    updateAllNametags()
+    updateAllOtherLabels()
+end
+
+--------------------------------------------------
+-- Entferner-Funktionen (deine vorhandenen Remove-Funktionen übernehmen)
 --------------------------------------------------
 local function removeCakeEsp()
     for _, obj in pairs(workspace:GetDescendants()) do
@@ -172,19 +224,9 @@ local function removePuzzleEsp()
     end
 end
 
-local function removeHiddenCodeEsp()
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") or obj:IsA("MeshPart") or obj:IsA("UnionOperation") then
-            if obj:FindFirstChild("HiddenCodeLabel") then obj.HiddenCodeLabel:Destroy() end
-        end
-    end
-end
-
 --------------------------------------------------
 -- Check-/Loop-Funktionen
 --------------------------------------------------
-
--- CAKE
 local function checkCakeEsp(obj)
     if not obj:IsA("BasePart") then return end
     if (obj.Parent and obj.Parent.Name == "Cake" and tonumber(obj.Name))
@@ -204,11 +246,9 @@ local function checkCakeEsp(obj)
             local labelText = "Cake Plate"
             if obj.Parent and obj.Parent.Name == "Cake" then
                 local num = tonumber(obj.Name)
-                if num and num >= 1 and num <= 6 then
-                    labelText = "Main Plate"
-                end
+                if num and num >= 1 and num <= 6 then labelText = "Main Plate" end
             end
-            local billboard = createBillboard(labelText)
+            local billboard = createBillboard(labelText, false)
             billboard.Name = "CakeLabel"
             billboard.Parent = obj
         end
@@ -224,7 +264,6 @@ local function cakeEspLoopFunction()
     end
 end
 
--- COIN
 local function checkCoinEsp(obj)
     if not obj:IsA("BasePart") then return end
     if obj.Parent and obj.Parent.Name == "Tokens" and obj.Name == "Token" then
@@ -240,7 +279,7 @@ local function checkCoinEsp(obj)
             esp.Parent = obj
         end
         if not obj:FindFirstChild("CoinLabel") then
-            local billboard = createBillboard("Coin")
+            local billboard = createBillboard("Coin", false)
             billboard.Name = "CoinLabel"
             billboard.Parent = obj
         end
@@ -256,7 +295,6 @@ local function coinEspLoopFunction()
     end
 end
 
--- CHAMS (für Spieler)
 local function checkChams()
     for _, player in pairs(game.Players:GetPlayers()) do
         if player ~= game.Players.LocalPlayer and player.Character then
@@ -291,7 +329,6 @@ local function chamsLoopFunction()
     end
 end
 
--- NAMETAGS
 local function checkNametags()
     for _, player in pairs(game.Players:GetPlayers()) do
         if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
@@ -300,11 +337,12 @@ local function checkNametags()
             local head = player.Character.Head
             local existingTag = head:FindFirstChild("Nametag")
             if not existingTag then
-                local billboard = createBillboard(player.Name)
+                local billboard = createBillboard(player.Name, true)
                 billboard.Name = "Nametag"
                 billboard.Parent = head
             else
-                existingTag.TextLabel.TextColor3 = color
+                local txt = existingTag:FindFirstChildOfClass("TextLabel")
+                if txt then txt.TextColor3 = color end
             end
         end
     end
@@ -317,7 +355,6 @@ local function nametagLoopFunction()
     end
 end
 
--- VALVE
 local function checkValveEsp(obj)
     if not obj:IsA("BasePart") then return end
     local parent = obj.Parent
@@ -356,7 +393,7 @@ local function checkValveEsp(obj)
         esp.Parent = basePart
     end
     if not basePart:FindFirstChild("ValveLabel") then
-        local billboard = createBillboard("Valve")
+        local billboard = createBillboard("Valve", false)
         billboard.Name = "ValveLabel"
         billboard.Parent = basePart
     end
@@ -372,7 +409,6 @@ local function valveEspLoopFunction()
     end
 end
 
--- CUBE PUZZLE
 local function checkPuzzleNumberEsp(obj)
     if not obj:IsA("BasePart") then return end
     if obj.Parent and obj.Parent.Name == "Buttons" and puzzleNumbers[obj.Name] then
@@ -388,7 +424,7 @@ local function checkPuzzleNumberEsp(obj)
             esp.Parent = obj
         end
         if not obj:FindFirstChild("PuzzleNumberLabel") then
-            local billboard = createBillboard("Cube Puzzle")
+            local billboard = createBillboard("Cube Puzzle", false)
             billboard.Name = "PuzzleNumberLabel"
             billboard.Parent = obj
         end
@@ -404,13 +440,12 @@ local function puzzleNumberEspLoopFunction()
     end
 end
 
--- CODE PUZZLE
 local function checkCodePuzzleEsp(obj)
     if not obj:IsA("BasePart") then return end
     local fullname = obj:GetFullName():lower()
     if fullname:find("combinationpuzzle") then
         if not obj:FindFirstChild("PuzzleLabel") then
-            local billboard = createBillboard("Code Puzzle")
+            local billboard = createBillboard("Code Puzzle", false)
             billboard.Name = "PuzzleLabel"
             billboard.Parent = obj
         end
@@ -426,29 +461,6 @@ local function codePuzzleEspLoopFunction()
     end
 end
 
--- HIDDEN CODE
-local function checkHiddenCodeEsp(obj)
-    if not (obj:IsA("BasePart") or obj:IsA("MeshPart") or obj:IsA("UnionOperation")) then return end
-    local fullname = obj:GetFullName():lower()
-    if fullname:find("combinationkey") then
-        if not obj:FindFirstChild("HiddenCodeLabel") then
-            local billboard = createBillboard("hidden code")
-            billboard.Name = "HiddenCodeLabel"
-            billboard.Parent = obj
-        end
-    end
-end
-
-local function hiddenCodeEspLoopFunction()
-    while hiddenCodeEspActive do
-        for _, obj in pairs(workspace:GetDescendants()) do
-            checkHiddenCodeEsp(obj)
-        end
-        wait(2)
-    end
-end
-
--- NO FOG
 local function noFogLoopFunction()
     while noFogActive do
         game.Lighting.FogStart = 0
@@ -457,7 +469,6 @@ local function noFogLoopFunction()
     end
 end
 
--- FLY
 local function enableFly()
     local character = game.Players.LocalPlayer.Character
     if character and character:FindFirstChild("HumanoidRootPart") then
@@ -634,22 +645,6 @@ ESPTogglesSection:AddToggle("CodePuzzleEspToggle", {
     end
 })
 
-ESPTogglesSection:AddToggle("HiddenCodeEspToggle", {
-    Title = "Enable Hidden Code ESP",
-    Default = false,
-    Callback = function(state)
-        hiddenCodeEspActive = state
-        if state then
-            if hiddenCodeEspLoop then task.cancel(hiddenCodeEspLoop) end
-            hiddenCodeEspLoop = task.spawn(hiddenCodeEspLoopFunction)
-        else
-            if hiddenCodeEspLoop then task.cancel(hiddenCodeEspLoop) end
-            hiddenCodeEspLoop = nil
-            removeHiddenCodeEsp()
-        end
-    end
-})
-
 --------------------------------------------------
 -- COLORPICKERS
 --------------------------------------------------
@@ -665,7 +660,6 @@ ESPColorsSection:AddColorpicker("CoinEspColor", {
     Callback = function(color) coinEspColor = color end
 })
 
--- Enemy / Team Chams
 ESPColorsSection:AddColorpicker("EnemyChamsColor", {
     Title = "Enemy Chams Color",
     Default = enemyChamColor,
@@ -694,12 +688,6 @@ ESPColorsSection:AddColorpicker("PuzzleObjectEspColor", {
     Title = "Code Puzzle ESP Color",
     Default = puzzleEspColor,
     Callback = function(color) puzzleEspColor = color end
-})
-
-ESPColorsSection:AddColorpicker("HiddenCodeEspColor", {
-    Title = "Hidden Code ESP Color",
-    Default = hiddenCodeEspColor,
-    Callback = function(color) hiddenCodeEspColor = color end
 })
 
 --------------------------------------------------
@@ -834,6 +822,3 @@ Fluent:Notify({
 })
 
 Window:SelectTab(1)
-
--- Optional: Direkt den Hidden Code Loop starten
-hiddenCodeEspLoop = task.spawn(hiddenCodeEspLoopFunction)
