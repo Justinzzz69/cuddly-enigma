@@ -22,7 +22,7 @@ local Tabs = {
 local ESPTogglesSection = Tabs.ESP:AddSection("ESP Toggles")
 local ESPColorsSection = Tabs.ESP:AddSection("ESP Colors")
 
--- Feste Werte für Nametags und andere Labels
+-- Feste Werte für Nametags und Labels
 local nametagWidth = 150
 local nametagHeight = 50
 local nametagOffsetY = 3
@@ -34,7 +34,7 @@ local labelOffsetY = 3
 local labelTextSize = 16
 
 --------------------------------------------------
--- ESP-Variablen
+-- ESP Variables
 --------------------------------------------------
 local cakeEspActive = false
 local cakeEspLoop = nil
@@ -67,7 +67,6 @@ local puzzleNumberEspLoop = nil
 local puzzleNumberEspColor = Color3.fromRGB(255, 255, 255)
 local puzzleNumbers = {["23"] = true, ["34"] = true, ["31"] = true}
 
--- Code Puzzle ESP (sucht nach "combinationpuzzle" und zeigt nur ein Label "Code Puzzle")
 local puzzleEspActive = false
 local puzzleEspLoop = nil
 local puzzleEspColor = Color3.fromRGB(0, 255, 0)
@@ -75,22 +74,156 @@ local puzzleEspColor = Color3.fromRGB(0, 255, 0)
 local noFogActive = false
 local noFogLoop = nil
 
--- Fly
+--------------------------------------------------
+-- Fly Functions
+--------------------------------------------------
 local flyActive = false
 local flySpeed = 50
 local flyBodyVelocity = nil
 local flyBodyGyro = nil
 local flyConnection = nil
 
--- Anti-AFK (jeder 5 Minuten einen Sprung)
+--------------------------------------------------
+-- Anti-AFK (jump every 5 minutes)
+--------------------------------------------------
 local antiAfkActive = false
 local antiAfkLoop = nil
-
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
+local function enableAntiAfk()
+    antiAfkActive = true
+    antiAfkLoop = task.spawn(function()
+        while antiAfkActive do
+            local char = game.Players.LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+            wait(300)
+        end
+    end)
+end
+local function disableAntiAfk()
+    antiAfkActive = false
+    if antiAfkLoop then
+        task.cancel(antiAfkLoop)
+        antiAfkLoop = nil
+    end
+end
 
 --------------------------------------------------
--- Billboard-Funktion (isNametag = true für Nametags)
+-- New Visual Options
+--------------------------------------------------
+-- Xray Mode
+local xrayActive = false
+local xrayTransparency = 0.5
+local function enableXray()
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and not part:IsDescendantOf(game.Players.LocalPlayer.Character) then
+            part.LocalTransparencyModifier = xrayTransparency
+        end
+    end
+end
+local function disableXray()
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and not part:IsDescendantOf(game.Players.LocalPlayer.Character) then
+            part.LocalTransparencyModifier = 0
+        end
+    end
+end
+local function xrayLoopFunction()
+    while xrayActive do
+        enableXray()
+        wait(1)
+    end
+end
+
+-- Bloom Effect
+local bloomActive = false
+local bloomEffect = nil
+local bloomIntensity = 1
+local function enableBloom()
+    if not game.Lighting:FindFirstChild("BloomEffect") then
+        bloomEffect = Instance.new("BloomEffect")
+        bloomEffect.Parent = game.Lighting
+    else
+        bloomEffect = game.Lighting:FindFirstChild("BloomEffect")
+    end
+    bloomEffect.Intensity = bloomIntensity
+end
+local function disableBloom()
+    if bloomEffect then
+        bloomEffect:Destroy()
+        bloomEffect = nil
+    end
+end
+
+-- Color Correction
+local ccActive = false
+local ccEffect = nil
+local ccBrightness = 0
+local ccContrast = 0
+local ccSaturation = 1
+local function enableColorCorrection()
+    if not game.Lighting:FindFirstChild("ColorCorrectionEffect") then
+        ccEffect = Instance.new("ColorCorrectionEffect")
+        ccEffect.Parent = game.Lighting
+    else
+        ccEffect = game.Lighting:FindFirstChild("ColorCorrectionEffect")
+    end
+    ccEffect.Brightness = ccBrightness
+    ccEffect.Contrast = ccContrast
+    ccEffect.Saturation = ccSaturation
+end
+local function disableColorCorrection()
+    if ccEffect then
+        ccEffect:Destroy()
+        ccEffect = nil
+    end
+end
+
+-- Depth Of Field
+local dofActive = false
+local dofEffect = nil
+local dofFocalDistance = 15
+local dofInFocusRadius = 20
+local function enableDOF()
+    if not game.Lighting:FindFirstChild("DepthOfFieldEffect") then
+        dofEffect = Instance.new("DepthOfFieldEffect")
+        dofEffect.Parent = game.Lighting
+    else
+        dofEffect = game.Lighting:FindFirstChild("DepthOfFieldEffect")
+    end
+    dofEffect.FarIntensity = 0
+    dofEffect.FocusDistance = dofFocalDistance
+    dofEffect.InFocusRadius = dofInFocusRadius
+end
+local function disableDOF()
+    if dofEffect then
+        dofEffect:Destroy()
+        dofEffect = nil
+    end
+end
+
+-- SunRays
+local sunRaysActive = false
+local sunRaysEffect = nil
+local sunRaysIntensity = 0.3
+local function enableSunRays()
+    if not game.Lighting:FindFirstChild("SunRaysEffect") then
+        sunRaysEffect = Instance.new("SunRaysEffect")
+        sunRaysEffect.Parent = game.Lighting
+    else
+        sunRaysEffect = game.Lighting:FindFirstChild("SunRaysEffect")
+    end
+    sunRaysEffect.Intensity = sunRaysIntensity
+end
+local function disableSunRays()
+    if sunRaysEffect then
+        sunRaysEffect:Destroy()
+        sunRaysEffect = nil
+    end
+end
+
+--------------------------------------------------
+-- Billboard Function (isNametag = true for Nametags)
 --------------------------------------------------
 local function createBillboard(text, isNametag)
     local billboard = Instance.new("BillboardGui")
@@ -123,7 +256,7 @@ local function createBillboard(text, isNametag)
 end
 
 --------------------------------------------------
--- Entferner-Funktionen
+-- Remover Functions
 --------------------------------------------------
 local function removeCakeEsp()
     for _, obj in pairs(workspace:GetDescendants()) do
@@ -192,7 +325,7 @@ local function removePuzzleEsp()
 end
 
 --------------------------------------------------
--- Check-/Loop-Funktionen
+-- Check/Loop Functions
 --------------------------------------------------
 local function checkCakeEsp(obj)
     if not obj:IsA("BasePart") then return end
@@ -437,7 +570,7 @@ local function noFogLoopFunction()
 end
 
 -----------------------------------------------------------------------
--- Fly-Funktionen
+-- Fly Functions
 -----------------------------------------------------------------------
 local function enableFly()
     local character = game.Players.LocalPlayer.Character
@@ -497,34 +630,10 @@ local function disableFly()
 end
 
 -----------------------------------------------------------------------
--- Anti-AFK-Funktion: Springt alle 5 Minuten
------------------------------------------------------------------------
-local function enableAntiAfk()
-    antiAfkActive = true
-    antiAfkLoop = task.spawn(function()
-        while antiAfkActive do
-            local character = game.Players.LocalPlayer.Character
-            if character and character:FindFirstChild("Humanoid") then
-                character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
-            wait(300)  -- 5 Minuten warten
-        end
-    end)
-end
-
-local function disableAntiAfk()
-    antiAfkActive = false
-    if antiAfkLoop then
-        task.cancel(antiAfkLoop)
-        antiAfkLoop = nil
-    end
-end
-
------------------------------------------------------------------------
 -- TOGGLES
 -----------------------------------------------------------------------
 ESPTogglesSection:AddToggle("CakeEspToggle", {
-    Title = "Enable Cake ESP",
+    Title = "Cake ESP",
     Default = false,
     Callback = function(state)
         cakeEspActive = state
@@ -540,7 +649,7 @@ ESPTogglesSection:AddToggle("CakeEspToggle", {
 })
 
 ESPTogglesSection:AddToggle("CoinEspToggle", {
-    Title = "Enable Coin ESP",
+    Title = "Coin ESP",
     Default = false,
     Callback = function(state)
         coinEspActive = state
@@ -556,7 +665,7 @@ ESPTogglesSection:AddToggle("CoinEspToggle", {
 })
 
 ESPTogglesSection:AddToggle("ChamsToggle", {
-    Title = "Enable Player Chams",
+    Title = "Player Chams",
     Default = false,
     Callback = function(state)
         chamsActive = state
@@ -572,7 +681,7 @@ ESPTogglesSection:AddToggle("ChamsToggle", {
 })
 
 ESPTogglesSection:AddToggle("NametagToggle", {
-    Title = "Enable Nametags",
+    Title = "Nametags",
     Default = false,
     Callback = function(state)
         nametagActive = state
@@ -588,7 +697,7 @@ ESPTogglesSection:AddToggle("NametagToggle", {
 })
 
 ESPTogglesSection:AddToggle("ValveEspToggle", {
-    Title = "Enable Valve ESP",
+    Title = "Valve ESP",
     Default = false,
     Callback = function(state)
         valveEspActive = state
@@ -606,7 +715,7 @@ ESPTogglesSection:AddToggle("ValveEspToggle", {
 })
 
 ESPTogglesSection:AddToggle("CubePuzzleEspToggle", {
-    Title = "Enable Cube Puzzle ESP",
+    Title = "Cube Puzzle ESP",
     Default = false,
     Callback = function(state)
         puzzleNumberEspActive = state
@@ -624,7 +733,7 @@ ESPTogglesSection:AddToggle("CubePuzzleEspToggle", {
 })
 
 ESPTogglesSection:AddToggle("CodePuzzleEspToggle", {
-    Title = "Enable Code Puzzle ESP",
+    Title = "Code Puzzle ESP",
     Default = false,
     Callback = function(state)
         puzzleEspActive = state
@@ -643,43 +752,43 @@ ESPTogglesSection:AddToggle("CodePuzzleEspToggle", {
 -- COLORPICKERS
 -----------------------------------------------------------------------
 ESPColorsSection:AddColorpicker("CakeEspColor", {
-    Title = "Cake ESP Color",
+    Title = "Cake ESP",
     Default = cakeEspColor,
     Callback = function(color) cakeEspColor = color end
 })
 
 ESPColorsSection:AddColorpicker("CoinEspColor", {
-    Title = "Coin ESP Color",
+    Title = "Coin ESP",
     Default = coinEspColor,
     Callback = function(color) coinEspColor = color end
 })
 
 ESPColorsSection:AddColorpicker("EnemyChamsColor", {
-    Title = "Enemy Chams Color",
+    Title = "Enemy Chams",
     Default = enemyChamColor,
     Callback = function(color) enemyChamColor = color end
 })
 
 ESPColorsSection:AddColorpicker("TeamChamsColor", {
-    Title = "Team Chams Color",
+    Title = "Team Chams",
     Default = teamChamColor,
     Callback = function(color) teamChamColor = color end
 })
 
 ESPColorsSection:AddColorpicker("ValveEspColor", {
-    Title = "Valve ESP Color",
+    Title = "Valve ESP",
     Default = valveEspColor,
     Callback = function(color) valveEspColor = color end
 })
 
 ESPColorsSection:AddColorpicker("PuzzleNumberEspColor", {
-    Title = "Cube Puzzle ESP Color",
+    Title = "Cube Puzzle ESP",
     Default = puzzleNumberEspColor,
     Callback = function(color) puzzleNumberEspColor = color end
 })
 
 ESPColorsSection:AddColorpicker("PuzzleObjectEspColor", {
-    Title = "Code Puzzle ESP Color",
+    Title = "Code Puzzle ESP",
     Default = puzzleEspColor,
     Callback = function(color) puzzleEspColor = color end
 })
@@ -734,16 +843,12 @@ Tabs.Player:AddButton({
     end
 })
 
--- Fly Controls (neu sortiert: erst Fly Toggle, dann Fly Speed Input und Button)
+-- Fly Controls (Fly Toggle, then Fly Speed Input and Button)
 Tabs.Player:AddToggle("FlyToggle", {
     Title = "Fly (Local)",
     Default = false,
     Callback = function(state)
-        if state then
-            enableFly()
-        else
-            disableFly()
-        end
+        if state then enableFly() else disableFly() end
     end
 })
 
@@ -757,22 +862,16 @@ Tabs.Player:AddButton({
     Description = "Set fly speed of Player",
     Callback = function()
         local fSpeed = tonumber(FlySpeedInput.Value)
-        if fSpeed and fSpeed > 0 then
-            flySpeed = fSpeed
-        end
+        if fSpeed and fSpeed > 0 then flySpeed = fSpeed end
     end
 })
 
--- Anti-AFK Toggle (Springt alle 5 Minuten)
+-- Anti-AFK Toggle
 Tabs.Player:AddToggle("AntiAFKToggle", {
-    Title = "Enable Anti-AFK",
+    Title = "Anti-AFK",
     Default = false,
     Callback = function(state)
-        if state then
-            enableAntiAfk()
-        else
-            disableAntiAfk()
-        end
+        if state then enableAntiAfk() else disableAntiAfk() end
     end
 })
 
@@ -780,7 +879,7 @@ Tabs.Player:AddToggle("AntiAFKToggle", {
 -- VISUAL
 -----------------------------------------------------------------------
 Tabs.Visual:AddToggle("FullbrightToggle", {
-    Title = "Enable Fullbright",
+    Title = "Fullbright",
     Default = false,
     Callback = function(state)
         fullbrightActive = state
@@ -799,7 +898,7 @@ Tabs.Visual:AddToggle("FullbrightToggle", {
 })
 
 Tabs.Visual:AddToggle("NoFogToggle", {
-    Title = "Disable Fog",
+    Title = "No Fog",
     Default = false,
     Callback = function(state)
         if state then
@@ -811,6 +910,71 @@ Tabs.Visual:AddToggle("NoFogToggle", {
             if noFogLoop then task.cancel(noFogLoop) end
             game.Lighting.FogStart = 0
             game.Lighting.FogEnd = 1000
+        end
+    end
+})
+
+Tabs.Visual:AddToggle("XrayToggle", {
+    Title = "Xray Mode",
+    Default = false,
+    Callback = function(state)
+        xrayActive = state
+        if state then
+            task.spawn(xrayLoopFunction)
+        else
+            disableXray()
+        end
+    end
+})
+
+Tabs.Visual:AddToggle("BloomToggle", {
+    Title = "Bloom",
+    Default = false,
+    Callback = function(state)
+        bloomActive = state
+        if state then
+            enableBloom()
+        else
+            disableBloom()
+        end
+    end
+})
+
+Tabs.Visual:AddToggle("ColorCorrectionToggle", {
+    Title = "Color Correction",
+    Default = false,
+    Callback = function(state)
+        ccActive = state
+        if state then
+            enableColorCorrection()
+        else
+            disableColorCorrection()
+        end
+    end
+})
+
+Tabs.Visual:AddToggle("DOFToggle", {
+    Title = "Depth Of Field",
+    Default = false,
+    Callback = function(state)
+        dofActive = state
+        if state then
+            enableDOF()
+        else
+            disableDOF()
+        end
+    end
+})
+
+Tabs.Visual:AddToggle("SunRaysToggle", {
+    Title = "SunRays",
+    Default = false,
+    Callback = function(state)
+        sunRaysActive = state
+        if state then
+            enableSunRays()
+        else
+            disableSunRays()
         end
     end
 })
