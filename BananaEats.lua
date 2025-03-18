@@ -2,6 +2,12 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
+-- Services
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local VirtualUser = game:GetService("VirtualUser")
+
 local Window = Fluent:CreateWindow({
     Title = "Banana Eats Script",
     SubTitle = "by Tapetenputzer",
@@ -75,7 +81,7 @@ local noFogActive = false
 local noFogLoop = nil
 
 --------------------------------------------------
--- Fly Functions
+-- Fly Variables
 --------------------------------------------------
 local flyActive = false
 local flySpeed = 50
@@ -84,27 +90,22 @@ local flyBodyGyro = nil
 local flyConnection = nil
 
 --------------------------------------------------
--- Anti-AFK (jump every 5 minutes)
+-- Anti-AFK using VirtualUser
 --------------------------------------------------
-local antiAfkActive = false
-local antiAfkLoop = nil
+local antiAfkConnection = nil
+
 local function enableAntiAfk()
-    antiAfkActive = true
-    antiAfkLoop = task.spawn(function()
-        while antiAfkActive do
-            local char = game.Players.LocalPlayer.Character
-            if char and char:FindFirstChild("Humanoid") then
-                char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
-            wait(300)
-        end
+    if antiAfkConnection then return end
+    antiAfkConnection = Players.LocalPlayer.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new(0, 0))
     end)
 end
+
 local function disableAntiAfk()
-    antiAfkActive = false
-    if antiAfkLoop then
-        task.cancel(antiAfkLoop)
-        antiAfkLoop = nil
+    if antiAfkConnection then
+        antiAfkConnection:Disconnect()
+        antiAfkConnection = nil
     end
 end
 
@@ -116,14 +117,14 @@ local xrayActive = false
 local xrayTransparency = 0.5
 local function enableXray()
     for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and not part:IsDescendantOf(game.Players.LocalPlayer.Character) then
+        if part:IsA("BasePart") and not part:IsDescendantOf(Players.LocalPlayer.Character) then
             part.LocalTransparencyModifier = xrayTransparency
         end
     end
 end
 local function disableXray()
     for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and not part:IsDescendantOf(game.Players.LocalPlayer.Character) then
+        if part:IsA("BasePart") and not part:IsDescendantOf(Players.LocalPlayer.Character) then
             part.LocalTransparencyModifier = 0
         end
     end
@@ -241,17 +242,18 @@ local function createBillboard(text, isNametag)
     textLabel.BackgroundTransparency = 1
     textLabel.Text = text
     textLabel.TextScaled = false
+    textLabel.Font = Enum.Font.GothamSemibold
+    textLabel.TextColor3 = Color3.new(1, 1, 1)
+    textLabel.TextStrokeTransparency = 0.3
+    textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
     if isNametag then
         textLabel.TextSize = nametagTextSize
     else
         textLabel.TextSize = labelTextSize
     end
-    textLabel.Font = Enum.Font.GothamSemibold
-    textLabel.TextColor3 = Color3.new(1, 1, 1)
-    textLabel.TextStrokeTransparency = 0.3
-    textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-    textLabel.Parent = billboard
 
+    textLabel.Parent = billboard
     return billboard
 end
 
@@ -277,7 +279,7 @@ local function removeCoinEsp()
 end
 
 local function removeChams()
-    for _, player in pairs(game.Players:GetPlayers()) do
+    for _, player in pairs(Players:GetPlayers()) do
         if player.Character then
             for _, part in pairs(player.Character:GetDescendants()) do
                 if part:IsA("BasePart") and part:FindFirstChild("Cham") then
@@ -289,7 +291,7 @@ local function removeChams()
 end
 
 local function removeNametags()
-    for _, player in pairs(game.Players:GetPlayers()) do
+    for _, player in pairs(Players:GetPlayers()) do
         if player.Character and player.Character:FindFirstChild("Head") then
             local tag = player.Character.Head:FindFirstChild("Nametag")
             if tag then tag:Destroy() end
@@ -396,9 +398,9 @@ local function coinEspLoopFunction()
 end
 
 local function checkChams()
-    for _, player in pairs(game.Players:GetPlayers()) do
-        if player ~= game.Players.LocalPlayer and player.Character then
-            local sameTeam = (player.TeamColor == game.Players.LocalPlayer.TeamColor)
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer and player.Character then
+            local sameTeam = (player.TeamColor == Players.LocalPlayer.TeamColor)
             local color = sameTeam and teamChamColor or enemyChamColor
             for _, part in pairs(player.Character:GetDescendants()) do
                 if part:IsA("BasePart") then
@@ -430,9 +432,9 @@ local function chamsLoopFunction()
 end
 
 local function checkNametags()
-    for _, player in pairs(game.Players:GetPlayers()) do
-        if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-            local sameTeam = (player.TeamColor == game.Players.LocalPlayer.TeamColor)
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local sameTeam = (player.TeamColor == Players.LocalPlayer.TeamColor)
             local color = sameTeam and teamChamColor or enemyChamColor
             local head = player.Character.Head
             local existingTag = head:FindFirstChild("Nametag")
@@ -442,7 +444,9 @@ local function checkNametags()
                 billboard.Parent = head
             else
                 local txt = existingTag:FindFirstChildOfClass("TextLabel")
-                if txt then txt.TextColor3 = color end
+                if txt then
+                    txt.TextColor3 = color
+                end
             end
         end
     end
@@ -573,7 +577,7 @@ end
 -- Fly Functions
 -----------------------------------------------------------------------
 local function enableFly()
-    local character = game.Players.LocalPlayer.Character
+    local character = Players.LocalPlayer.Character
     if character and character:FindFirstChild("HumanoidRootPart") then
         local root = character.HumanoidRootPart
         flyBodyVelocity = Instance.new("BodyVelocity", root)
@@ -809,14 +813,14 @@ Tabs.Player:AddButton({
         local speed = tonumber(SpeedInput.Value)
         if speed and speed > 0 then
             currentSpeed = speed
-            local char = game.Players.LocalPlayer.Character
+            local char = Players.LocalPlayer.Character
             if char and char:FindFirstChild("Humanoid") then
                 char.Humanoid.WalkSpeed = currentSpeed
             end
             if speedLoop then task.cancel(speedLoop) end
             speedLoop = task.spawn(function()
                 while true do
-                    local c = game.Players.LocalPlayer.Character
+                    local c = Players.LocalPlayer.Character
                     if c and c:FindFirstChild("Humanoid") then
                         c.Humanoid.WalkSpeed = currentSpeed
                     end
@@ -832,7 +836,7 @@ Tabs.Player:AddButton({
     Description = "Sets the speed to 16",
     Callback = function()
         currentSpeed = 16
-        local char = game.Players.LocalPlayer.Character
+        local char = Players.LocalPlayer.Character
         if char and char:FindFirstChild("Humanoid") then
             char.Humanoid.WalkSpeed = currentSpeed
         end
@@ -862,7 +866,9 @@ Tabs.Player:AddButton({
     Description = "Set fly speed of Player",
     Callback = function()
         local fSpeed = tonumber(FlySpeedInput.Value)
-        if fSpeed and fSpeed > 0 then flySpeed = fSpeed end
+        if fSpeed and fSpeed > 0 then
+            flySpeed = fSpeed
+        end
     end
 })
 
