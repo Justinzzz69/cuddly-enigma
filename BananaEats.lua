@@ -16,6 +16,7 @@ local Window = Fluent:CreateWindow({
 	Theme = "Dark",
 	MinimizeKey = Enum.KeyCode.LeftControl
 })
+
 local Tabs = {
 	ESP = Window:AddTab({ Title = "ESP", Icon = "eye" }),
 	Player = Window:AddTab({ Title = "Player", Icon = "user" }),
@@ -192,10 +193,10 @@ local function createBillboard(text, isNametag)
 	local billboard = Instance.new("BillboardGui")
 	if isNametag then
 		billboard.Size = UDim2.new(0, nametagWidth, 0, nametagHeight)
-		billboard.StudsOffset = Vector3.new(0, nametagOffsetY, 0)
+		billboard.StudsOffset = Vector3.new(0, 3, 0)
 	else
-		billboard.Size = UDim2.new(0, labelWidth, 0, labelHeight)
-		billboard.StudsOffset = Vector3.new(0, labelOffsetY, 0)
+		billboard.Size = UDim2.new(0, 150, 0, 50)
+		billboard.StudsOffset = Vector3.new(0, 3, 0)
 	end
 	billboard.AlwaysOnTop = true
 	local textLabel = Instance.new("TextLabel")
@@ -207,11 +208,7 @@ local function createBillboard(text, isNametag)
 	textLabel.TextColor3 = Color3.new(1, 1, 1)
 	textLabel.TextStrokeTransparency = 0.3
 	textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-	if isNametag then
-		textLabel.TextSize = nametagTextSize
-	else
-		textLabel.TextSize = labelTextSize
-	end
+	textLabel.TextSize = isNametag and 16 or 16
 	textLabel.Parent = billboard
 	return billboard
 end
@@ -224,6 +221,7 @@ local function removeCakeEsp()
 		end
 	end
 end
+
 local function removeCoinEsp()
 	for _, obj in pairs(workspace:GetDescendants()) do
 		if obj:IsA("BasePart") then
@@ -232,6 +230,7 @@ local function removeCoinEsp()
 		end
 	end
 end
+
 local function removeChams()
 	for _, player in pairs(Players:GetPlayers()) do
 		if player.Character then
@@ -243,6 +242,7 @@ local function removeChams()
 		end
 	end
 end
+
 local function removeNametags()
 	for _, player in pairs(Players:GetPlayers()) do
 		if player.Character and player.Character:FindFirstChild("Head") then
@@ -251,6 +251,7 @@ local function removeNametags()
 		end
 	end
 end
+
 local function removeValveEsp()
 	for _, obj in ipairs(workspace:GetDescendants()) do
 		if obj:IsA("BasePart") then
@@ -260,6 +261,7 @@ local function removeValveEsp()
 	end
 	labeledValves = {}
 end
+
 local function removePuzzleNumberEsp()
 	for _, obj in pairs(workspace:GetDescendants()) do
 		if obj:IsA("BasePart") and obj.Parent and obj.Parent.Name == "Buttons" and puzzleNumbers[obj.Name] then
@@ -268,6 +270,7 @@ local function removePuzzleNumberEsp()
 		end
 	end
 end
+
 local function removePuzzleEsp()
 	for _, obj in pairs(workspace:GetDescendants()) do
 		if obj:IsA("BasePart") then
@@ -291,17 +294,13 @@ local function checkCakeEsp(obj)
 			esp.Parent = obj
 		end
 		if not obj:FindFirstChild("CakeLabel") then
-			local labelText = "Cake Plate"
-			if obj.Parent and obj.Parent.Name == "Cake" then
-				local num = tonumber(obj.Name)
-				if num and num >= 1 and num <= 6 then labelText = "Main Plate" end
-			end
-			local billboard = createBillboard(labelText, false)
+			local billboard = createBillboard("Cake Plate", false)
 			billboard.Name = "CakeLabel"
 			billboard.Parent = obj
 		end
 	end
 end
+
 local function cakeEspLoopFunction()
 	while cakeEspActive do
 		for _, obj in pairs(workspace:GetDescendants()) do
@@ -310,6 +309,7 @@ local function cakeEspLoopFunction()
 		wait(2)
 	end
 end
+
 local function checkCoinEsp(obj)
 	if not obj:IsA("BasePart") then return end
 	if obj.Parent and obj.Parent.Name == "Tokens" and obj.Name == "Token" then
@@ -331,6 +331,7 @@ local function checkCoinEsp(obj)
 		end
 	end
 end
+
 local function coinEspLoopFunction()
 	while coinEspActive do
 		for _, obj in pairs(workspace:GetDescendants()) do
@@ -339,6 +340,7 @@ local function coinEspLoopFunction()
 		wait(0.5)
 	end
 end
+
 local function checkChams()
 	for _, player in pairs(Players:GetPlayers()) do
 		if player ~= Players.LocalPlayer and player.Character then
@@ -365,12 +367,14 @@ local function checkChams()
 		end
 	end
 end
+
 local function chamsLoopFunction()
 	while chamsActive do
 		checkChams()
 		wait(2)
 	end
 end
+
 local function checkNametags()
 	for _, player in pairs(Players:GetPlayers()) do
 		if player ~= Players.LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
@@ -391,12 +395,14 @@ local function checkNametags()
 		end
 	end
 end
+
 local function nametagLoopFunction()
 	while nametagActive do
 		checkNametags()
 		wait(2)
 	end
 end
+
 local function checkValveEsp(obj)
 	if not obj:IsA("BasePart") then return end
 	local parent = obj.Parent
@@ -440,6 +446,7 @@ local function checkValveEsp(obj)
 		billboard.Parent = basePart
 	end
 end
+
 local function valveEspLoopFunction()
 	while valveEspActive do
 		labeledValves = {}
@@ -449,6 +456,7 @@ local function valveEspLoopFunction()
 		wait(2)
 	end
 end
+
 local function checkPuzzleNumberEsp(obj)
 	if not obj:IsA("BasePart") then return end
 	if obj.Parent and obj.Parent.Name == "Buttons" and puzzleNumbers[obj.Name] then
@@ -470,6 +478,7 @@ local function checkPuzzleNumberEsp(obj)
 		end
 	end
 end
+
 local function puzzleNumberEspLoopFunction()
 	while puzzleNumberEspActive do
 		for _, obj in pairs(workspace:GetDescendants()) do
@@ -478,6 +487,7 @@ local function puzzleNumberEspLoopFunction()
 		wait(2)
 	end
 end
+
 local function checkCodePuzzleEsp(obj)
 	if not obj:IsA("BasePart") then return end
 	local fullname = obj:GetFullName():lower()
@@ -489,6 +499,7 @@ local function checkCodePuzzleEsp(obj)
 		end
 	end
 end
+
 local function codePuzzleEspLoopFunction()
 	while puzzleEspActive do
 		for _, obj in pairs(workspace:GetDescendants()) do
@@ -497,6 +508,7 @@ local function codePuzzleEspLoopFunction()
 		wait(2)
 	end
 end
+
 local function noFogLoopFunction()
 	while noFogActive do
 		game.Lighting.FogStart = 0
@@ -509,12 +521,14 @@ local function enableFly()
 	local character = Players.LocalPlayer.Character
 	if character and character:FindFirstChild("HumanoidRootPart") then
 		local root = character.HumanoidRootPart
-		flyBodyVelocity = Instance.new("BodyVelocity", root)
-		flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-		flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-		flyBodyGyro = Instance.new("BodyGyro", root)
-		flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-		flyBodyGyro.CFrame = root.CFrame
+		local bv = Instance.new("BodyVelocity", root)
+		bv.Velocity = Vector3.new(0, 0, 0)
+		bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+		local bg = Instance.new("BodyGyro", root)
+		bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+		bg.CFrame = root.CFrame
+		flyBodyVelocity = bv
+		flyBodyGyro = bg
 		flyActive = true
 		flyConnection = RunService.RenderStepped:Connect(function()
 			local direction = Vector3.new(0, 0, 0)
@@ -545,6 +559,7 @@ local function enableFly()
 		end)
 	end
 end
+
 local function disableFly()
 	flyActive = false
 	if flyBodyVelocity then
@@ -563,206 +578,367 @@ end
 
 local ESPSection = Tabs.ESP:AddSection("ESP Toggles")
 local ESPColorsSection = Tabs.ESP:AddSection("ESP Colors")
-ESPSection:AddToggle("CakeEspToggle", { Title = "Cake ESP", Default = false, Callback = function(state)
-	cakeEspActive = state
-	if state then
-		if cakeEspLoop then task.cancel(cakeEspLoop) end
-		cakeEspLoop = task.spawn(cakeEspLoopFunction)
-	else
-		if cakeEspLoop then task.cancel(cakeEspLoop) end
-		cakeEspLoop = nil
-		removeCakeEsp()
-	end
-end})
-ESPSection:AddToggle("CoinEspToggle", { Title = "Coin ESP", Default = false, Callback = function(state)
-	coinEspActive = state
-	if state then
-		if coinEspLoop then task.cancel(coinEspLoop) end
-		coinEspLoop = task.spawn(coinEspLoopFunction)
-	else
-		if coinEspLoop then task.cancel(coinEspLoop) end
-		coinEspLoop = nil
-		removeCoinEsp()
-	end
-end})
-ESPSection:AddToggle("ChamsToggle", { Title = "Player Chams", Default = false, Callback = function(state)
-	chamsActive = state
-	if state then
-		if chamsLoop then task.cancel(chamsLoop) end
-		chamsLoop = task.spawn(chamsLoopFunction)
-	else
-		if chamsLoop then task.cancel(chamsLoop) end
-		chamsLoop = nil
-		removeChams()
-	end
-end})
-ESPSection:AddToggle("NametagToggle", { Title = "Nametags", Default = false, Callback = function(state)
-	nametagActive = state
-	if state then
-		if nametagLoop then task.cancel(nametagLoop) end
-		nametagLoop = task.spawn(nametagLoopFunction)
-	else
-		if nametagLoop then task.cancel(nametagLoop) end
-		nametagLoop = nil
-		removeNametags()
-	end
-end})
-ESPSection:AddToggle("ValveEspToggle", { Title = "Valve ESP", Default = false, Callback = function(state)
-	valveEspActive = state
-	if state then
-		if valveEspLoop then task.cancel(valveEspLoop) end
-		valveEspLoop = task.spawn(valveEspLoopFunction)
-	else
-		if valveEspLoop then task.cancel(valveEspLoop) end
-		valveEspLoop = nil
-		removeValveEsp()
-	end
-end})
-ESPSection:AddToggle("CubePuzzleEspToggle", { Title = "Cube Puzzle ESP", Default = false, Callback = function(state)
-	puzzleNumberEspActive = state
-	if state then
-		if puzzleNumberEspLoop then task.cancel(puzzleNumberEspLoop) end
-		puzzleNumberEspLoop = task.spawn(puzzleNumberEspLoopFunction)
-	else
-		if puzzleNumberEspLoop then task.cancel(puzzleNumberEspLoop) end
-		puzzleNumberEspLoop = nil
-		removePuzzleNumberEsp()
-	end
-end})
-ESPSection:AddToggle("CodePuzzleEspToggle", { Title = "Code Puzzle ESP", Default = false, Callback = function(state)
-	puzzleEspActive = state
-	if state then
-		if puzzleEspLoop then task.cancel(puzzleEspLoop) end
-		puzzleEspLoop = task.spawn(codePuzzleEspLoopFunction)
-	else
-		if puzzleEspLoop then task.cancel(puzzleEspLoop) end
-		puzzleEspLoop = nil
-		removePuzzleEsp()
-	end
-end})
-ESPColorsSection:AddColorpicker("CakeEspColor", { Title = "Cake ESP", Default = cakeEspColor, Callback = function(color) cakeEspColor = color end})
-ESPColorsSection:AddColorpicker("CoinEspColor", { Title = "Coin ESP", Default = coinEspColor, Callback = function(color) coinEspColor = color end})
-ESPColorsSection:AddColorpicker("EnemyChamsColor", { Title = "Enemy Chams", Default = enemyChamColor, Callback = function(color) enemyChamColor = color end})
-ESPColorsSection:AddColorpicker("TeamChamsColor", { Title = "Team Chams", Default = teamChamColor, Callback = function(color) teamChamColor = color end})
-ESPColorsSection:AddColorpicker("ValveEspColor", { Title = "Valve ESP", Default = valveEspColor, Callback = function(color) valveEspColor = color end})
-ESPColorsSection:AddColorpicker("PuzzleNumberEspColor", { Title = "Cube Puzzle ESP", Default = puzzleNumberEspColor, Callback = function(color) puzzleNumberEspColor = color end})
-ESPColorsSection:AddColorpicker("PuzzleObjectEspColor", { Title = "Code Puzzle ESP", Default = puzzleEspColor, Callback = function(color) puzzleEspColor = color end})
 
-local PlayerSpeedInput = Tabs.Player:AddInput("SpeedInput", { Title = "Set Speed", Placeholder = "Default = 16", Numeric = true })
-Tabs.Player:AddButton({ Title = "Set Player Speed", Description = "Set speed of Player", Callback = function()
-	local speed = tonumber(PlayerSpeedInput.Value)
-	if speed and speed > 0 then
-		currentSpeed = speed
+ESPSection:AddToggle("CakeEspToggle", {
+	Title = "Cake ESP",
+	Default = false,
+	Callback = function(state)
+		cakeEspActive = state
+		if state then
+			if cakeEspLoop then task.cancel(cakeEspLoop) end
+			cakeEspLoop = task.spawn(cakeEspLoopFunction)
+		else
+			if cakeEspLoop then task.cancel(cakeEspLoop) end
+			cakeEspLoop = nil
+			removeCakeEsp()
+		end
+	end
+})
+
+ESPSection:AddToggle("CoinEspToggle", {
+	Title = "Coin ESP",
+	Default = false,
+	Callback = function(state)
+		coinEspActive = state
+		if state then
+			if coinEspLoop then task.cancel(coinEspLoop) end
+			coinEspLoop = task.spawn(coinEspLoopFunction)
+		else
+			if coinEspLoop then task.cancel(coinEspLoop) end
+			coinEspLoop = nil
+			removeCoinEsp()
+		end
+	end
+})
+
+ESPSection:AddToggle("ChamsToggle", {
+	Title = "Player Chams",
+	Default = false,
+	Callback = function(state)
+		chamsActive = state
+		if state then
+			if chamsLoop then task.cancel(chamsLoop) end
+			chamsLoop = task.spawn(chamsLoopFunction)
+		else
+			if chamsLoop then task.cancel(chamsLoop) end
+			chamsLoop = nil
+			removeChams()
+		end
+	end
+})
+
+ESPSection:AddToggle("NametagToggle", {
+	Title = "Nametags",
+	Default = false,
+	Callback = function(state)
+		nametagActive = state
+		if state then
+			if nametagLoop then task.cancel(nametagLoop) end
+			nametagLoop = task.spawn(nametagLoopFunction)
+		else
+			if nametagLoop then task.cancel(nametagLoop) end
+			nametagLoop = nil
+			removeNametags()
+		end
+	end
+})
+
+ESPSection:AddToggle("ValveEspToggle", {
+	Title = "Valve ESP",
+	Default = false,
+	Callback = function(state)
+		valveEspActive = state
+		if state then
+			if valveEspLoop then task.cancel(valveEspLoop) end
+			valveEspLoop = task.spawn(valveEspLoopFunction)
+		else
+			if valveEspLoop then task.cancel(valveEspLoop) end
+			valveEspLoop = nil
+			removeValveEsp()
+		end
+	end
+})
+
+ESPSection:AddToggle("CubePuzzleEspToggle", {
+	Title = "Cube Puzzle ESP",
+	Default = false,
+	Callback = function(state)
+		puzzleNumberEspActive = state
+		if state then
+			if puzzleNumberEspLoop then task.cancel(puzzleNumberEspLoop) end
+			puzzleNumberEspLoop = task.spawn(puzzleNumberEspLoopFunction)
+		else
+			if puzzleNumberEspLoop then task.cancel(puzzleNumberEspLoop) end
+			puzzleNumberEspLoop = nil
+			removePuzzleNumberEsp()
+		end
+	end
+})
+
+ESPSection:AddToggle("CodePuzzleEspToggle", {
+	Title = "Code Puzzle ESP",
+	Default = false,
+	Callback = function(state)
+		puzzleEspActive = state
+		if state then
+			if puzzleEspLoop then task.cancel(puzzleEspLoop) end
+			puzzleEspLoop = task.spawn(codePuzzleEspLoopFunction)
+		else
+			if puzzleEspLoop then task.cancel(puzzleEspLoop) end
+			puzzleEspLoop = nil
+			removePuzzleEsp()
+		end
+	end
+})
+
+ESPColorsSection:AddColorpicker("CakeEspColor", {
+	Title = "Cake ESP",
+	Default = cakeEspColor,
+	Callback = function(color)
+		cakeEspColor = color
+	end
+})
+
+ESPColorsSection:AddColorpicker("CoinEspColor", {
+	Title = "Coin ESP",
+	Default = coinEspColor,
+	Callback = function(color)
+		coinEspColor = color
+	end
+})
+
+ESPColorsSection:AddColorpicker("EnemyChamsColor", {
+	Title = "Enemy Chams",
+	Default = enemyChamColor,
+	Callback = function(color)
+		enemyChamColor = color
+	end
+})
+
+ESPColorsSection:AddColorpicker("TeamChamsColor", {
+	Title = "Team Chams",
+	Default = teamChamColor,
+	Callback = function(color)
+		teamChamColor = color
+	end
+})
+
+ESPColorsSection:AddColorpicker("ValveEspColor", {
+	Title = "Valve ESP",
+	Default = valveEspColor,
+	Callback = function(color)
+		valveEspColor = color
+	end
+})
+
+ESPColorsSection:AddColorpicker("PuzzleNumberEspColor", {
+	Title = "Cube Puzzle ESP",
+	Default = puzzleNumberEspColor,
+	Callback = function(color)
+		puzzleNumberEspColor = color
+	end
+})
+
+ESPColorsSection:AddColorpicker("PuzzleObjectEspColor", {
+	Title = "Code Puzzle ESP",
+	Default = puzzleEspColor,
+	Callback = function(color)
+		puzzleEspColor = color
+	end
+})
+
+local PlayerSpeedInput = Tabs.Player:AddInput("SpeedInput", {
+	Title = "Set Speed",
+	Placeholder = "Default = 16",
+	Numeric = true
+})
+
+Tabs.Player:AddButton({
+	Title = "Set Player Speed",
+	Description = "Set speed of Player",
+	Callback = function()
+		local speed = tonumber(PlayerSpeedInput.Value)
+		if speed and speed > 0 then
+			currentSpeed = speed
+			local char = Players.LocalPlayer.Character
+			if char and char:FindFirstChild("Humanoid") then
+				char.Humanoid.WalkSpeed = currentSpeed
+			end
+			if speedLoop then task.cancel(speedLoop) end
+			speedLoop = task.spawn(function()
+				while true do
+					local c = Players.LocalPlayer.Character
+					if c and c:FindFirstChild("Humanoid") then
+						c.Humanoid.WalkSpeed = currentSpeed
+					end
+					wait(2)
+				end
+			end)
+		end
+	end
+})
+
+Tabs.Player:AddButton({
+	Title = "Reset Speed",
+	Description = "Sets the speed to 16",
+	Callback = function()
+		currentSpeed = 16
 		local char = Players.LocalPlayer.Character
 		if char and char:FindFirstChild("Humanoid") then
 			char.Humanoid.WalkSpeed = currentSpeed
 		end
-		if speedLoop then task.cancel(speedLoop) end
-		speedLoop = task.spawn(function()
-			while true do
-				local c = Players.LocalPlayer.Character
-				if c and c:FindFirstChild("Humanoid") then
-					c.Humanoid.WalkSpeed = currentSpeed
-				end
-				wait(2)
-			end
-		end)
+		if speedLoop then
+			task.cancel(speedLoop)
+			speedLoop = nil
+		end
 	end
-end})
-Tabs.Player:AddButton({ Title = "Reset Speed", Description = "Sets the speed to 16", Callback = function()
-	currentSpeed = 16
-	local char = Players.LocalPlayer.Character
-	if char and char:FindFirstChild("Humanoid") then
-		char.Humanoid.WalkSpeed = currentSpeed
+})
+
+Tabs.Player:AddToggle("FlyToggle", {
+	Title = "Fly (Local)",
+	Default = false,
+	Callback = function(state)
+		if state then
+			enableFly()
+		else
+			disableFly()
+		end
 	end
-	if speedLoop then
-		task.cancel(speedLoop)
-		speedLoop = nil
+})
+
+local FlySpeedInput = Tabs.Player:AddInput("FlySpeedInput", {
+	Title = "Set Fly Speed",
+	Placeholder = "Default = 50",
+	Numeric = true
+})
+
+Tabs.Player:AddButton({
+	Title = "Set Fly Speed",
+	Description = "Set fly speed of Player",
+	Callback = function()
+		local fSpeed = tonumber(FlySpeedInput.Value)
+		if fSpeed and fSpeed > 0 then
+			flySpeed = fSpeed
+		end
 	end
-end})
-Tabs.Player:AddToggle("FlyToggle", { Title = "Fly (Local)", Default = false, Callback = function(state)
-	if state then enableFly() else disableFly() end
-end})
-local FlySpeedInput = Tabs.Player:AddInput("FlySpeedInput", { Title = "Set Fly Speed", Placeholder = "Default = 50", Numeric = true })
-Tabs.Player:AddButton({ Title = "Set Fly Speed", Description = "Set fly speed of Player", Callback = function()
-	local fSpeed = tonumber(FlySpeedInput.Value)
-	if fSpeed and fSpeed > 0 then
-		flySpeed = fSpeed
+})
+
+Tabs.Player:AddToggle("AntiAFKToggle", {
+	Title = "Anti-AFK",
+	Default = false,
+	Callback = function(state)
+		if state then
+			enableAntiAfk()
+		else
+			disableAntiAfk()
+		end
 	end
-end})
-Tabs.Player:AddToggle("AntiAFKToggle", { Title = "Anti-AFK", Default = false, Callback = function(state)
-	if state then enableAntiAfk() else disableAntiAfk() end
-end})
+})
 
 local VisualSection = Tabs.Visual
-VisualSection:AddToggle("FullbrightToggle", { Title = "Fullbright", Default = false, Callback = function(state)
-	fullbrightActive = state
-	if state then
-		game.Lighting.Brightness = 10
-		game.Lighting.ClockTime = 12
-		game.Lighting.FogEnd = 100000
-		game.Lighting.GlobalShadows = false
-	else
-		game.Lighting.Brightness = 1
-		game.Lighting.ClockTime = 14
-		game.Lighting.FogEnd = 1000
-		game.Lighting.GlobalShadows = true
+VisualSection:AddToggle("FullbrightToggle", {
+	Title = "Fullbright",
+	Default = false,
+	Callback = function(state)
+		fullbrightActive = state
+		if state then
+			game.Lighting.Brightness = 10
+			game.Lighting.ClockTime = 12
+			game.Lighting.FogEnd = 100000
+			game.Lighting.GlobalShadows = false
+		else
+			game.Lighting.Brightness = 1
+			game.Lighting.ClockTime = 14
+			game.Lighting.FogEnd = 1000
+			game.Lighting.GlobalShadows = true
+		end
 	end
-end})
-VisualSection:AddToggle("NoFogToggle", { Title = "No Fog", Default = false, Callback = function(state)
-	if state then
-		noFogActive = true
-		if noFogLoop then task.cancel(noFogLoop) end
-		noFogLoop = task.spawn(noFogLoopFunction)
-	else
-		noFogActive = false
-		if noFogLoop then task.cancel(noFogLoop) end
-		game.Lighting.FogStart = 0
-		game.Lighting.FogEnd = 1000
+})
+
+VisualSection:AddToggle("NoFogToggle", {
+	Title = "No Fog",
+	Default = false,
+	Callback = function(state)
+		if state then
+			noFogActive = true
+			if noFogLoop then task.cancel(noFogLoop) end
+			noFogLoop = task.spawn(noFogLoopFunction)
+		else
+			noFogActive = false
+			if noFogLoop then task.cancel(noFogLoop) end
+			game.Lighting.FogStart = 0
+			game.Lighting.FogEnd = 1000
+		end
 	end
-end})
-VisualSection:AddToggle("XrayToggle", { Title = "Xray Mode", Default = false, Callback = function(state)
-	xrayActive = state
-	if state then
-		task.spawn(xrayLoopFunction)
-	else
-		disableXray()
+})
+
+VisualSection:AddToggle("XrayToggle", {
+	Title = "Xray Mode",
+	Default = false,
+	Callback = function(state)
+		xrayActive = state
+		if state then
+			task.spawn(xrayLoopFunction)
+		else
+			disableXray()
+		end
 	end
-end})
-VisualSection:AddToggle("BloomToggle", { Title = "Bloom", Default = false, Callback = function(state)
-	bloomActive = state
-	if state then
-		enableBloom()
-	else
-		disableBloom()
+})
+
+VisualSection:AddToggle("BloomToggle", {
+	Title = "Bloom",
+	Default = false,
+	Callback = function(state)
+		bloomActive = state
+		if state then
+			enableBloom()
+		else
+			disableBloom()
+		end
 	end
-end})
-VisualSection:AddToggle("ColorCorrectionToggle", { Title = "Color Correction", Default = false, Callback = function(state)
-	ccActive = state
-	if state then
-		enableColorCorrection()
-	else
-		disableColorCorrection()
+})
+
+VisualSection:AddToggle("ColorCorrectionToggle", {
+	Title = "Color Correction",
+	Default = false,
+	Callback = function(state)
+		ccActive = state
+		if state then
+			enableColorCorrection()
+		else
+			disableColorCorrection()
+		end
 	end
-end})
-VisualSection:AddToggle("DOFToggle", { Title = "Depth Of Field", Default = false, Callback = function(state)
-	dofActive = state
-	if state then
-		enableDOF()
-	else
-		disableDOF()
+})
+
+VisualSection:AddToggle("DOFToggle", {
+	Title = "Depth Of Field",
+	Default = false,
+	Callback = function(state)
+		dofActive = state
+		if state then
+			enableDOF()
+		else
+			disableDOF()
+		end
 	end
-end})
-VisualSection:AddToggle("SunRaysToggle", { Title = "SunRays", Default = false, Callback = function(state)
-	sunRaysActive = state
-	if state then
-		enableSunRays()
-	else
-		disableSunRays()
+})
+
+VisualSection:AddToggle("SunRaysToggle", {
+	Title = "SunRays",
+	Default = false,
+	Callback = function(state)
+		sunRaysActive = state
+		if state then
+			enableSunRays()
+		else
+			disableSunRays()
+		end
 	end
-end})
+})
 
 local AutoSection = Tabs.Player:AddSection("Auto Features")
+
 local autoDeletePeelsActive = false
 local autoDeletePeelsThread = nil
 local autoCollectTokensActive = false
@@ -770,6 +946,7 @@ local autoCollectTokensThread = nil
 local autoDeleteLockersActive = false
 local autoDeleteLockersThread = nil
 local antiKickConnection = nil
+
 local function startAntiKick()
 	if not antiKickConnection then
 		antiKickConnection = Players.LocalPlayer.Idled:Connect(function()
@@ -778,25 +955,31 @@ local function startAntiKick()
 		end)
 	end
 end
+
 local function stopAntiKick()
 	if antiKickConnection then
 		antiKickConnection:Disconnect()
 		antiKickConnection = nil
 	end
 end
+
+-- Updated peel remover (checks Workspace.GameKeeper.Map.Peels)
 local function autoDeletePeelsFunc()
 	while autoDeletePeelsActive do
-		local peelsRoot = workspace:FindFirstChild("GameProperties") and workspace.GameProperties:FindFirstChild("Displays") and workspace.GameProperties.Displays:FindFirstChild("PeelsRoot")
-		if peelsRoot then
-			for _, obj in ipairs(peelsRoot:GetChildren()) do
-				if obj:IsA("BasePart") or obj:IsA("Model") or obj:IsA("Folder") then
-					obj:Destroy()
+		local peelsFolder = workspace:FindFirstChild("GameKeeper")
+			and workspace.GameKeeper:FindFirstChild("Map")
+			and workspace.GameKeeper.Map:FindFirstChild("Peels")
+		if peelsFolder then
+			for _, peel in ipairs(peelsFolder:GetChildren()) do
+				if peel.Name:lower():find("peel") then
+					peel:Destroy()
 				end
 			end
 		end
 		task.wait(2)
 	end
 end
+
 local function autoCollectTokensFunc()
 	while autoCollectTokensActive do
 		for _, obj in ipairs(workspace:GetDescendants()) do
@@ -810,6 +993,7 @@ local function autoCollectTokensFunc()
 		task.wait(2)
 	end
 end
+
 local function autoDeleteLockersFunc()
 	while autoDeleteLockersActive do
 		for _, desc in ipairs(workspace:GetDescendants()) do
@@ -820,43 +1004,93 @@ local function autoDeleteLockersFunc()
 		task.wait(3)
 	end
 end
-AutoSection:AddToggle("AutoCollectTokens", { Title = "Auto Collect Tokens", Default = false, Callback = function(state)
-	autoCollectTokensActive = state
-	if state then
-		if autoCollectTokensThread then task.cancel(autoCollectTokensThread) end
-		autoCollectTokensThread = task.spawn(autoCollectTokensFunc)
-	else
-		if autoCollectTokensThread then task.cancel(autoCollectTokensThread) end
-		autoCollectTokensThread = nil
+
+AutoSection:AddToggle("AutoCollectTokens", {
+	Title = "Auto Collect Tokens",
+	Default = false,
+	Callback = function(state)
+		autoCollectTokensActive = state
+		if state then
+			if autoCollectTokensThread then task.cancel(autoCollectTokensThread) end
+			autoCollectTokensThread = task.spawn(autoCollectTokensFunc)
+		else
+			if autoCollectTokensThread then task.cancel(autoCollectTokensThread) end
+			autoCollectTokensThread = nil
+		end
 	end
-end})
-AutoSection:AddToggle("AutoDeletePeels", { Title = "Auto Delete Peels", Default = false, Callback = function(state)
-	autoDeletePeelsActive = state
-	if state then
-		if autoDeletePeelsThread then task.cancel(autoDeletePeelsThread) end
-		autoDeletePeelsThread = task.spawn(autoDeletePeelsFunc)
-	else
-		if autoDeletePeelsThread then task.cancel(autoDeletePeelsThread) end
-		autoDeletePeelsThread = nil
+})
+
+AutoSection:AddToggle("AutoDeletePeels", {
+	Title = "Auto Delete Peels",
+	Default = false,
+	Callback = function(state)
+		autoDeletePeelsActive = state
+		if state then
+			if autoDeletePeelsThread then task.cancel(autoDeletePeelsThread) end
+			autoDeletePeelsThread = task.spawn(autoDeletePeelsFunc)
+		else
+			if autoDeletePeelsThread then task.cancel(autoDeletePeelsThread) end
+			autoDeletePeelsThread = nil
+		end
 	end
-end})
-AutoSection:AddToggle("AutoDeleteLockers", { Title = "Auto Delete Lockers", Default = false, Callback = function(state)
-	autoDeleteLockersActive = state
-	if state then
-		if autoDeleteLockersThread then task.cancel(autoDeleteLockersThread) end
-		autoDeleteLockersThread = task.spawn(autoDeleteLockersFunc)
-	else
-		if autoDeleteLockersThread then task.cancel(autoDeleteLockersThread) end
-		autoDeleteLockersThread = nil
+})
+
+AutoSection:AddToggle("AutoDeleteLockers", {
+	Title = "Auto Delete Lockers",
+	Default = false,
+	Callback = function(state)
+		autoDeleteLockersActive = state
+		if state then
+			if autoDeleteLockersThread then task.cancel(autoDeleteLockersThread) end
+			autoDeleteLockersThread = task.spawn(autoDeleteLockersFunc)
+		else
+			if autoDeleteLockersThread then task.cancel(autoDeleteLockersThread) end
+			autoDeleteLockersThread = nil
+		end
 	end
-end})
-AutoSection:AddToggle("AntiKickBypass", { Title = "Anti Kick Bypass", Default = true, Callback = function(state)
-	if state then
-		startAntiKick()
-	else
-		stopAntiKick()
+})
+
+AutoSection:AddToggle("AntiKickBypass", {
+	Title = "Anti Kick Bypass",
+	Default = false,
+	Callback = function(state)
+		if state then
+			startAntiKick()
+		else
+			stopAntiKick()
+		end
 	end
-end})
+})
+
+-- Single button to solve all valves at once
+local function solveAllValvesOnce()
+	local puzzleFolder = workspace.GameKeeper and workspace.GameKeeper:FindFirstChild("Puzzles")
+	if puzzleFolder then
+		for _, puzzle in ipairs(puzzleFolder:GetChildren()) do
+			if puzzle.Name == "ValvePuzzle" and puzzle:FindFirstChild("Buttons") then
+				local valveButton = puzzle.Buttons:FindFirstChild("ValveButton")
+				if valveButton then
+					local clickDetector = valveButton:FindFirstChildOfClass("ClickDetector")
+					if clickDetector then
+						-- If you need exactly 3 clicks, do a small loop:
+						for _=1,3 do
+							fireclickdetector(clickDetector, 100)
+							task.wait(0.05)
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+AutoSection:AddButton({
+	Title = "Solve All Valves",
+	Description = "Click once to solve all ValvePuzzles",
+	Callback = function()
+		solveAllValvesOnce()
+	end
+})
 
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
@@ -867,5 +1101,11 @@ SaveManager:SetFolder("FluentScriptHub/specific-game")
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 SaveManager:LoadAutoloadConfig()
-Fluent:Notify({ Title = "Tapetenputzer", Content = "Script Loaded!", Duration = 5 })
+
+Fluent:Notify({
+	Title = "Tapetenputzer",
+	Content = "Script Loaded!",
+	Duration = 5
+})
+
 Window:SelectTab(1)
