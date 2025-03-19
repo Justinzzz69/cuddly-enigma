@@ -24,51 +24,48 @@ local Tabs = {
 	Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
 
-local nametagWidth = 150
-local nametagHeight = 50
-local nametagOffsetY = 3
-local nametagTextSize = 16
-local labelWidth = 150
-local labelHeight = 50
-local labelOffsetY = 3
-local labelTextSize = 16
+-- Label sizes and text
+local nametagWidth, nametagHeight, nametagOffsetY, nametagTextSize = 150, 50, 3, 16
+local labelWidth, labelHeight, labelOffsetY, labelTextSize = 150, 50, 3, 16
 
-local cakeEspActive = false
-local cakeEspLoop = nil
+-- ESP variables
+local cakeEspActive, cakeEspLoop
 local cakeEspColor = Color3.fromRGB(255, 255, 0)
-local coinEspActive = false
-local coinEspLoop = nil
+
+local coinEspActive, coinEspLoop
 local coinEspColor = Color3.fromRGB(0, 255, 0)
-local chamsActive = false
-local chamsLoop = nil
+
+local chamsActive, chamsLoop
 local enemyChamColor = Color3.fromRGB(255, 0, 0)
 local teamChamColor = Color3.fromRGB(0, 255, 0)
-local nametagActive = false
-local nametagLoop = nil
-local fullbrightActive = false
-local speedLoop = nil
-local currentSpeed = 16
-local valveEspActive = false
-local valveEspLoop = nil
+
+local nametagActive, nametagLoop
+
+local valveEspActive, valveEspLoop
 local valveEspColor = Color3.fromRGB(0, 255, 255)
 local labeledValves = {}
-local puzzleNumberEspActive = false
-local puzzleNumberEspLoop = nil
+
+local puzzleNumberEspActive, puzzleNumberEspLoop
 local puzzleNumberEspColor = Color3.fromRGB(255, 255, 255)
 local puzzleNumbers = {["23"] = true, ["34"] = true, ["31"] = true}
-local puzzleEspActive = false
-local puzzleEspLoop = nil
+
+local puzzleEspActive, puzzleEspLoop
 local puzzleEspColor = Color3.fromRGB(0, 255, 0)
-local noFogActive = false
-local noFogLoop = nil
 
-local flyActive = false
+-- Player and fly variables
+local speedLoop
+local currentSpeed = 16
+
+local flyActive
 local flySpeed = 50
-local flyBodyVelocity = nil
-local flyBodyGyro = nil
-local flyConnection = nil
+local flyBodyVelocity, flyBodyGyro, flyConnection
 
-local antiAfkConnection = nil
+-- Visual toggles
+local fullbrightActive
+local noFogActive, noFogLoop
+
+-- Anti-AFK
+local antiAfkConnection
 local function enableAntiAfk()
 	if antiAfkConnection then return end
 	antiAfkConnection = Players.LocalPlayer.Idled:Connect(function()
@@ -83,50 +80,9 @@ local function disableAntiAfk()
 	end
 end
 
-local xrayActive = false
-local xrayTransparency = 0.5
-local function enableXray()
-	for _, part in pairs(workspace:GetDescendants()) do
-		if part:IsA("BasePart") and not part:IsDescendantOf(Players.LocalPlayer.Character) then
-			part.LocalTransparencyModifier = xrayTransparency
-		end
-	end
-end
-local function disableXray()
-	for _, part in pairs(workspace:GetDescendants()) do
-		if part:IsA("BasePart") and not part:IsDescendantOf(Players.LocalPlayer.Character) then
-			part.LocalTransparencyModifier = 0
-		end
-	end
-end
-local function xrayLoopFunction()
-	while xrayActive do
-		enableXray()
-		wait(1)
-	end
-end
-
-local bloomActive = false
-local bloomEffect = nil
-local bloomIntensity = 1
-local function enableBloom()
-	if not game.Lighting:FindFirstChild("BloomEffect") then
-		bloomEffect = Instance.new("BloomEffect")
-		bloomEffect.Parent = game.Lighting
-	else
-		bloomEffect = game.Lighting:FindFirstChild("BloomEffect")
-	end
-	bloomEffect.Intensity = bloomIntensity
-end
-local function disableBloom()
-	if bloomEffect then
-		bloomEffect:Destroy()
-		bloomEffect = nil
-	end
-end
-
-local ccActive = false
-local ccEffect = nil
+-- Color Correction
+local ccActive
+local ccEffect
 local ccBrightness = 0
 local ccContrast = 0
 local ccSaturation = 1
@@ -148,30 +104,9 @@ local function disableColorCorrection()
 	end
 end
 
-local dofActive = false
-local dofEffect = nil
-local dofFocalDistance = 15
-local dofInFocusRadius = 20
-local function enableDOF()
-	if not game.Lighting:FindFirstChild("DepthOfFieldEffect") then
-		dofEffect = Instance.new("DepthOfFieldEffect")
-		dofEffect.Parent = game.Lighting
-	else
-		dofEffect = game.Lighting:FindFirstChild("DepthOfFieldEffect")
-	end
-	dofEffect.FarIntensity = 0
-	dofEffect.FocusDistance = dofFocalDistance
-	dofEffect.InFocusRadius = dofInFocusRadius
-end
-local function disableDOF()
-	if dofEffect then
-		dofEffect:Destroy()
-		dofEffect = nil
-	end
-end
-
-local sunRaysActive = false
-local sunRaysEffect = nil
+-- SunRays
+local sunRaysActive
+local sunRaysEffect
 local sunRaysIntensity = 0.3
 local function enableSunRays()
 	if not game.Lighting:FindFirstChild("SunRaysEffect") then
@@ -189,30 +124,33 @@ local function disableSunRays()
 	end
 end
 
+-- Billboard creation (text scaled for uniform clarity)
 local function createBillboard(text, isNametag)
 	local billboard = Instance.new("BillboardGui")
+	billboard.AlwaysOnTop = true
 	if isNametag then
 		billboard.Size = UDim2.new(0, nametagWidth, 0, nametagHeight)
-		billboard.StudsOffset = Vector3.new(0, 3, 0)
+		billboard.StudsOffset = Vector3.new(0, nametagOffsetY, 0)
 	else
-		billboard.Size = UDim2.new(0, 150, 0, 50)
-		billboard.StudsOffset = Vector3.new(0, 3, 0)
+		billboard.Size = UDim2.new(0, labelWidth, 0, labelHeight)
+		billboard.StudsOffset = Vector3.new(0, labelOffsetY, 0)
 	end
-	billboard.AlwaysOnTop = true
 	local textLabel = Instance.new("TextLabel")
 	textLabel.Size = UDim2.new(1, 0, 1, 0)
 	textLabel.BackgroundTransparency = 1
 	textLabel.Text = text
-	textLabel.TextScaled = false
+	textLabel.TextScaled = true
 	textLabel.Font = Enum.Font.GothamSemibold
 	textLabel.TextColor3 = Color3.new(1, 1, 1)
 	textLabel.TextStrokeTransparency = 0.3
 	textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-	textLabel.TextSize = isNametag and 16 or 16
 	textLabel.Parent = billboard
 	return billboard
 end
 
+--------------------------------------------------------------------------------
+-- Cleanup functions
+--------------------------------------------------------------------------------
 local function removeCakeEsp()
 	for _, obj in pairs(workspace:GetDescendants()) do
 		if obj:IsA("BasePart") then
@@ -221,7 +159,6 @@ local function removeCakeEsp()
 		end
 	end
 end
-
 local function removeCoinEsp()
 	for _, obj in pairs(workspace:GetDescendants()) do
 		if obj:IsA("BasePart") then
@@ -230,7 +167,6 @@ local function removeCoinEsp()
 		end
 	end
 end
-
 local function removeChams()
 	for _, player in pairs(Players:GetPlayers()) do
 		if player.Character then
@@ -242,7 +178,6 @@ local function removeChams()
 		end
 	end
 end
-
 local function removeNametags()
 	for _, player in pairs(Players:GetPlayers()) do
 		if player.Character and player.Character:FindFirstChild("Head") then
@@ -251,7 +186,6 @@ local function removeNametags()
 		end
 	end
 end
-
 local function removeValveEsp()
 	for _, obj in ipairs(workspace:GetDescendants()) do
 		if obj:IsA("BasePart") then
@@ -261,7 +195,6 @@ local function removeValveEsp()
 	end
 	labeledValves = {}
 end
-
 local function removePuzzleNumberEsp()
 	for _, obj in pairs(workspace:GetDescendants()) do
 		if obj:IsA("BasePart") and obj.Parent and obj.Parent.Name == "Buttons" and puzzleNumbers[obj.Name] then
@@ -270,7 +203,6 @@ local function removePuzzleNumberEsp()
 		end
 	end
 end
-
 local function removePuzzleEsp()
 	for _, obj in pairs(workspace:GetDescendants()) do
 		if obj:IsA("BasePart") then
@@ -279,9 +211,13 @@ local function removePuzzleEsp()
 	end
 end
 
+--------------------------------------------------------------------------------
+-- ESP Check/Loops
+--------------------------------------------------------------------------------
 local function checkCakeEsp(obj)
 	if not obj:IsA("BasePart") then return end
-	if (obj.Parent and obj.Parent.Name == "Cake" and tonumber(obj.Name)) or (obj.Parent and obj.Parent.Name == "CakePlate" and obj.Name == "Plate") then
+	if (obj.Parent and obj.Parent.Name == "Cake" and tonumber(obj.Name))
+	   or (obj.Parent and obj.Parent.Name == "CakePlate" and obj.Name == "Plate") then
 		if not obj:FindFirstChild("CakeESP") then
 			local esp = Instance.new("BoxHandleAdornment")
 			esp.Name = "CakeESP"
@@ -300,13 +236,12 @@ local function checkCakeEsp(obj)
 		end
 	end
 end
-
 local function cakeEspLoopFunction()
 	while cakeEspActive do
 		for _, obj in pairs(workspace:GetDescendants()) do
 			checkCakeEsp(obj)
 		end
-		wait(2)
+		task.wait(2)
 	end
 end
 
@@ -331,13 +266,12 @@ local function checkCoinEsp(obj)
 		end
 	end
 end
-
 local function coinEspLoopFunction()
 	while coinEspActive do
 		for _, obj in pairs(workspace:GetDescendants()) do
 			checkCoinEsp(obj)
 		end
-		wait(0.5)
+		task.wait(0.5)
 	end
 end
 
@@ -355,8 +289,9 @@ local function checkChams()
 						cham.Adornee = part
 						cham.AlwaysOnTop = true
 						cham.ZIndex = 10
-						cham.Size = part.Size + Vector3.new(0.2, 0.2, 0.2)
-						cham.Transparency = 0.4
+						-- Reduced extra size and increased transparency for thinner chams:
+						cham.Size = part.Size + Vector3.new(0.1, 0.1, 0.1)
+						cham.Transparency = 0.5
 						cham.Color3 = color
 						cham.Parent = part
 					else
@@ -367,11 +302,10 @@ local function checkChams()
 		end
 	end
 end
-
 local function chamsLoopFunction()
 	while chamsActive do
 		checkChams()
-		wait(2)
+		task.wait(2)
 	end
 end
 
@@ -395,11 +329,10 @@ local function checkNametags()
 		end
 	end
 end
-
 local function nametagLoopFunction()
 	while nametagActive do
 		checkNametags()
-		wait(2)
+		task.wait(2)
 	end
 end
 
@@ -417,17 +350,8 @@ local function checkValveEsp(obj)
 	if labeledValves[parent] then return end
 	labeledValves[parent] = true
 	local basePart = obj
-	if parent:IsA("Model") then
-		if parent.PrimaryPart then
-			basePart = parent.PrimaryPart
-		else
-			for _, child in ipairs(parent:GetDescendants()) do
-				if child:IsA("BasePart") then
-					basePart = child
-					break
-				end
-			end
-		end
+	if parent:IsA("Model") and parent.PrimaryPart then
+		basePart = parent.PrimaryPart
 	end
 	if not basePart:FindFirstChild("ValveESP") then
 		local esp = Instance.new("BoxHandleAdornment")
@@ -446,14 +370,13 @@ local function checkValveEsp(obj)
 		billboard.Parent = basePart
 	end
 end
-
 local function valveEspLoopFunction()
 	while valveEspActive do
 		labeledValves = {}
 		for _, obj in ipairs(workspace:GetDescendants()) do
 			checkValveEsp(obj)
 		end
-		wait(2)
+		task.wait(2)
 	end
 end
 
@@ -478,13 +401,12 @@ local function checkPuzzleNumberEsp(obj)
 		end
 	end
 end
-
 local function puzzleNumberEspLoopFunction()
 	while puzzleNumberEspActive do
 		for _, obj in pairs(workspace:GetDescendants()) do
 			checkPuzzleNumberEsp(obj)
 		end
-		wait(2)
+		task.wait(2)
 	end
 end
 
@@ -499,36 +421,39 @@ local function checkCodePuzzleEsp(obj)
 		end
 	end
 end
-
 local function codePuzzleEspLoopFunction()
 	while puzzleEspActive do
 		for _, obj in pairs(workspace:GetDescendants()) do
 			checkCodePuzzleEsp(obj)
 		end
-		wait(2)
+		task.wait(2)
 	end
 end
 
+--------------------------------------------------------------------------------
+-- No Fog loop
+--------------------------------------------------------------------------------
 local function noFogLoopFunction()
 	while noFogActive do
 		game.Lighting.FogStart = 0
 		game.Lighting.FogEnd = 1e9
-		wait(0.5)
+		task.wait(0.5)
 	end
 end
 
+--------------------------------------------------------------------------------
+-- Fly functions
+--------------------------------------------------------------------------------
 local function enableFly()
 	local character = Players.LocalPlayer.Character
 	if character and character:FindFirstChild("HumanoidRootPart") then
 		local root = character.HumanoidRootPart
-		local bv = Instance.new("BodyVelocity", root)
-		bv.Velocity = Vector3.new(0, 0, 0)
-		bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-		local bg = Instance.new("BodyGyro", root)
-		bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-		bg.CFrame = root.CFrame
-		flyBodyVelocity = bv
-		flyBodyGyro = bg
+		flyBodyVelocity = Instance.new("BodyVelocity", root)
+		flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+		flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+		flyBodyGyro = Instance.new("BodyGyro", root)
+		flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+		flyBodyGyro.CFrame = root.CFrame
 		flyActive = true
 		flyConnection = RunService.RenderStepped:Connect(function()
 			local direction = Vector3.new(0, 0, 0)
@@ -559,7 +484,6 @@ local function enableFly()
 		end)
 	end
 end
-
 local function disableFly()
 	flyActive = false
 	if flyBodyVelocity then
@@ -576,6 +500,9 @@ local function disableFly()
 	end
 end
 
+--------------------------------------------------------------------------------
+-- ESP Tab (Player ESP toggles and color pickers)
+--------------------------------------------------------------------------------
 local ESPSection = Tabs.ESP:AddSection("ESP Toggles")
 local ESPColorsSection = Tabs.ESP:AddSection("ESP Colors")
 
@@ -698,7 +625,6 @@ ESPColorsSection:AddColorpicker("CakeEspColor", {
 		cakeEspColor = color
 	end
 })
-
 ESPColorsSection:AddColorpicker("CoinEspColor", {
 	Title = "Coin ESP",
 	Default = coinEspColor,
@@ -706,7 +632,6 @@ ESPColorsSection:AddColorpicker("CoinEspColor", {
 		coinEspColor = color
 	end
 })
-
 ESPColorsSection:AddColorpicker("EnemyChamsColor", {
 	Title = "Enemy Chams",
 	Default = enemyChamColor,
@@ -714,7 +639,6 @@ ESPColorsSection:AddColorpicker("EnemyChamsColor", {
 		enemyChamColor = color
 	end
 })
-
 ESPColorsSection:AddColorpicker("TeamChamsColor", {
 	Title = "Team Chams",
 	Default = teamChamColor,
@@ -722,7 +646,6 @@ ESPColorsSection:AddColorpicker("TeamChamsColor", {
 		teamChamColor = color
 	end
 })
-
 ESPColorsSection:AddColorpicker("ValveEspColor", {
 	Title = "Valve ESP",
 	Default = valveEspColor,
@@ -730,7 +653,6 @@ ESPColorsSection:AddColorpicker("ValveEspColor", {
 		valveEspColor = color
 	end
 })
-
 ESPColorsSection:AddColorpicker("PuzzleNumberEspColor", {
 	Title = "Cube Puzzle ESP",
 	Default = puzzleNumberEspColor,
@@ -738,7 +660,6 @@ ESPColorsSection:AddColorpicker("PuzzleNumberEspColor", {
 		puzzleNumberEspColor = color
 	end
 })
-
 ESPColorsSection:AddColorpicker("PuzzleObjectEspColor", {
 	Title = "Code Puzzle ESP",
 	Default = puzzleEspColor,
@@ -747,12 +668,14 @@ ESPColorsSection:AddColorpicker("PuzzleObjectEspColor", {
 	end
 })
 
+--------------------------------------------------------------------------------
+-- PLAYER Tab
+--------------------------------------------------------------------------------
 local PlayerSpeedInput = Tabs.Player:AddInput("SpeedInput", {
 	Title = "Set Speed",
 	Placeholder = "Default = 16",
 	Numeric = true
 })
-
 Tabs.Player:AddButton({
 	Title = "Set Player Speed",
 	Description = "Set speed of Player",
@@ -771,13 +694,12 @@ Tabs.Player:AddButton({
 					if c and c:FindFirstChild("Humanoid") then
 						c.Humanoid.WalkSpeed = currentSpeed
 					end
-					wait(2)
+					task.wait(2)
 				end
 			end)
 		end
 	end
 })
-
 Tabs.Player:AddButton({
 	Title = "Reset Speed",
 	Description = "Sets the speed to 16",
@@ -805,13 +727,11 @@ Tabs.Player:AddToggle("FlyToggle", {
 		end
 	end
 })
-
 local FlySpeedInput = Tabs.Player:AddInput("FlySpeedInput", {
 	Title = "Set Fly Speed",
 	Placeholder = "Default = 50",
 	Numeric = true
 })
-
 Tabs.Player:AddButton({
 	Title = "Set Fly Speed",
 	Description = "Set fly speed of Player",
@@ -822,7 +742,6 @@ Tabs.Player:AddButton({
 		end
 	end
 })
-
 Tabs.Player:AddToggle("AntiAFKToggle", {
 	Title = "Anti-AFK",
 	Default = false,
@@ -835,6 +754,9 @@ Tabs.Player:AddToggle("AntiAFKToggle", {
 	end
 })
 
+--------------------------------------------------------------------------------
+-- VISUAL Tab (only Fullbright, NoFog, ColorCorrection and SunRays)
+--------------------------------------------------------------------------------
 local VisualSection = Tabs.Visual
 VisualSection:AddToggle("FullbrightToggle", {
 	Title = "Fullbright",
@@ -854,7 +776,6 @@ VisualSection:AddToggle("FullbrightToggle", {
 		end
 	end
 })
-
 VisualSection:AddToggle("NoFogToggle", {
 	Title = "No Fog",
 	Default = false,
@@ -871,33 +792,6 @@ VisualSection:AddToggle("NoFogToggle", {
 		end
 	end
 })
-
-VisualSection:AddToggle("XrayToggle", {
-	Title = "Xray Mode",
-	Default = false,
-	Callback = function(state)
-		xrayActive = state
-		if state then
-			task.spawn(xrayLoopFunction)
-		else
-			disableXray()
-		end
-	end
-})
-
-VisualSection:AddToggle("BloomToggle", {
-	Title = "Bloom",
-	Default = false,
-	Callback = function(state)
-		bloomActive = state
-		if state then
-			enableBloom()
-		else
-			disableBloom()
-		end
-	end
-})
-
 VisualSection:AddToggle("ColorCorrectionToggle", {
 	Title = "Color Correction",
 	Default = false,
@@ -910,20 +804,6 @@ VisualSection:AddToggle("ColorCorrectionToggle", {
 		end
 	end
 })
-
-VisualSection:AddToggle("DOFToggle", {
-	Title = "Depth Of Field",
-	Default = false,
-	Callback = function(state)
-		dofActive = state
-		if state then
-			enableDOF()
-		else
-			disableDOF()
-		end
-	end
-})
-
 VisualSection:AddToggle("SunRaysToggle", {
 	Title = "SunRays",
 	Default = false,
@@ -937,15 +817,14 @@ VisualSection:AddToggle("SunRaysToggle", {
 	end
 })
 
+--------------------------------------------------------------------------------
+-- AUTO FEATURES (in Player Tab)
+--------------------------------------------------------------------------------
 local AutoSection = Tabs.Player:AddSection("Auto Features")
-
-local autoDeletePeelsActive = false
-local autoDeletePeelsThread = nil
-local autoCollectTokensActive = false
-local autoCollectTokensThread = nil
-local autoDeleteLockersActive = false
-local autoDeleteLockersThread = nil
-local antiKickConnection = nil
+local autoDeletePeelsActive, autoDeletePeelsThread
+local autoCollectCoinsActive, autoCollectCoinsThread  -- Renamed from Tokens to Coins
+local autoDeleteLockersActive, autoDeleteLockersThread
+local antiKickConnection
 
 local function startAntiKick()
 	if not antiKickConnection then
@@ -955,7 +834,6 @@ local function startAntiKick()
 		end)
 	end
 end
-
 local function stopAntiKick()
 	if antiKickConnection then
 		antiKickConnection:Disconnect()
@@ -963,12 +841,10 @@ local function stopAntiKick()
 	end
 end
 
--- Updated peel remover (checks Workspace.GameKeeper.Map.Peels)
+-- Peel Remover (checks in GameKeeper.Map.Peels)
 local function autoDeletePeelsFunc()
 	while autoDeletePeelsActive do
-		local peelsFolder = workspace:FindFirstChild("GameKeeper")
-			and workspace.GameKeeper:FindFirstChild("Map")
-			and workspace.GameKeeper.Map:FindFirstChild("Peels")
+		local peelsFolder = (workspace:FindFirstChild("GameKeeper") and workspace.GameKeeper:FindFirstChild("Map") and workspace.GameKeeper.Map:FindFirstChild("Peels")) or workspace:FindFirstChild("Peels")
 		if peelsFolder then
 			for _, peel in ipairs(peelsFolder:GetChildren()) do
 				if peel.Name:lower():find("peel") then
@@ -980,12 +856,15 @@ local function autoDeletePeelsFunc()
 	end
 end
 
-local function autoCollectTokensFunc()
-	while autoCollectTokensActive do
+-- Auto Collect Coins (teleports HRP to coin (token) parts)
+local function autoCollectCoinsFunc()
+	while autoCollectCoinsActive do
 		for _, obj in ipairs(workspace:GetDescendants()) do
 			if obj.Name:lower():find("token") and obj:IsA("BasePart") then
-				if Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-					Players.LocalPlayer.Character:MoveTo(obj.Position + Vector3.new(0, 2, 0))
+				local char = Players.LocalPlayer.Character
+				local hrp = char and char:FindFirstChild("HumanoidRootPart")
+				if hrp then
+					hrp.CFrame = CFrame.new(obj.Position + Vector3.new(0, 2, 0))
 					task.wait(0.5)
 				end
 			end
@@ -994,6 +873,7 @@ local function autoCollectTokensFunc()
 	end
 end
 
+-- Auto Delete Lockers
 local function autoDeleteLockersFunc()
 	while autoDeleteLockersActive do
 		for _, desc in ipairs(workspace:GetDescendants()) do
@@ -1005,17 +885,45 @@ local function autoDeleteLockersFunc()
 	end
 end
 
-AutoSection:AddToggle("AutoCollectTokens", {
-	Title = "Auto Collect Tokens",
+-- Auto Solve Valves (toggle version)
+local autoSolveValvesActive = false
+local autoSolveValvesThread
+local function autoSolveValvesFunc()
+	-- Try to find the puzzles folder either under workspace or GameKeeper
+	local puzzleFolder = workspace:FindFirstChild("Puzzles") or (workspace.GameKeeper and workspace.GameKeeper:FindFirstChild("Puzzles"))
+	while autoSolveValvesActive do
+		if puzzleFolder then
+			for _, puzzle in ipairs(puzzleFolder:GetChildren()) do
+				if puzzle.Name == "ValvePuzzle" and puzzle:FindFirstChild("Buttons") then
+					local valveButton = puzzle.Buttons:FindFirstChild("ValveButton")
+					if valveButton then
+						local clickDetector = valveButton:FindFirstChildOfClass("ClickDetector")
+						if clickDetector then
+							-- Click three times
+							for _ = 1, 3 do
+								fireclickdetector(clickDetector, 100)
+								task.wait(0.05)
+							end
+						end
+					end
+				end
+			end
+		end
+		task.wait(0.05)
+	end
+end
+
+AutoSection:AddToggle("AutoCollectCoins", {
+	Title = "Auto Collect Coins",
 	Default = false,
 	Callback = function(state)
-		autoCollectTokensActive = state
+		autoCollectCoinsActive = state
 		if state then
-			if autoCollectTokensThread then task.cancel(autoCollectTokensThread) end
-			autoCollectTokensThread = task.spawn(autoCollectTokensFunc)
+			if autoCollectCoinsThread then task.cancel(autoCollectCoinsThread) end
+			autoCollectCoinsThread = task.spawn(autoCollectCoinsFunc)
 		else
-			if autoCollectTokensThread then task.cancel(autoCollectTokensThread) end
-			autoCollectTokensThread = nil
+			if autoCollectCoinsThread then task.cancel(autoCollectCoinsThread) end
+			autoCollectCoinsThread = nil
 		end
 	end
 })
@@ -1062,36 +970,24 @@ AutoSection:AddToggle("AntiKickBypass", {
 	end
 })
 
--- Single button to solve all valves at once
-local function solveAllValvesOnce()
-	local puzzleFolder = workspace.GameKeeper and workspace.GameKeeper:FindFirstChild("Puzzles")
-	if puzzleFolder then
-		for _, puzzle in ipairs(puzzleFolder:GetChildren()) do
-			if puzzle.Name == "ValvePuzzle" and puzzle:FindFirstChild("Buttons") then
-				local valveButton = puzzle.Buttons:FindFirstChild("ValveButton")
-				if valveButton then
-					local clickDetector = valveButton:FindFirstChildOfClass("ClickDetector")
-					if clickDetector then
-						-- If you need exactly 3 clicks, do a small loop:
-						for _=1,3 do
-							fireclickdetector(clickDetector, 100)
-							task.wait(0.05)
-						end
-					end
-				end
-			end
+AutoSection:AddToggle("AutoSolveValves", {
+	Title = "Auto Solve Valves",
+	Default = false,
+	Callback = function(state)
+		autoSolveValvesActive = state
+		if state then
+			if autoSolveValvesThread then task.cancel(autoSolveValvesThread) end
+			autoSolveValvesThread = task.spawn(autoSolveValvesFunc)
+		else
+			if autoSolveValvesThread then task.cancel(autoSolveValvesThread) end
+			autoSolveValvesThread = nil
 		end
-	end
-end
-
-AutoSection:AddButton({
-	Title = "Solve All Valves",
-	Description = "Click once to solve all ValvePuzzles",
-	Callback = function()
-		solveAllValvesOnce()
 	end
 })
 
+--------------------------------------------------------------------------------
+-- SETTINGS Tab
+--------------------------------------------------------------------------------
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 SaveManager:IgnoreThemeSettings()
