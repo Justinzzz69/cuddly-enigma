@@ -347,12 +347,13 @@ ColorSection:AddColorpicker("PlayerHighlightColor", { Title = "Player Highlight"
 ColorSection:AddColorpicker("PlayerNametagColor", { Title = "Player Nametag", Default = playerNametagColor, Callback = function(c) playerNametagColor = c end })
 
 ---------------------
--- MOVEMENT / AUTO ITEMS
+-- MOVEMENT / RESEARCH CAPSULES
 ---------------------
 local MovementSection = Tabs.Movement:AddSection("Movement & Items")
 local speedLoopActive = false
 local speedLoopThread = nil
 local currentSpeed = 16
+
 local function enforceSpeed()
 	while speedLoopActive do
 		local char = player.Character
@@ -362,6 +363,7 @@ local function enforceSpeed()
 		task.wait(1)
 	end
 end
+
 local SpeedInput = Tabs.Movement:AddInput("SpeedInput", { Title = "Set Walk Speed", Placeholder = "e.g. 30", Numeric = true })
 Tabs.Movement:AddButton({ Title = "Apply Speed", Callback = function()
 	local s = tonumber(SpeedInput.Value)
@@ -382,66 +384,23 @@ Tabs.Movement:AddButton({ Title = "Reset Speed", Callback = function()
 	if speedLoopThread then task.cancel(speedLoopThread) end
 end})
 
-local autoPickupActive = false
-local autoPickupThread = nil
-local function autoPickupLoop()
-	while autoPickupActive do
-		for _, obj in ipairs(workspace:GetDescendants()) do
-			if obj:IsA("BasePart") and (string.lower(obj.Name):find("item") or string.lower(obj.Name):find("capsule")) then
-				local char = workspace.InGamePlayers:FindFirstChild(player.Name)
-				if char and char:FindFirstChild("HumanoidRootPart") then
-					char.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0,2,0)
-					task.wait(0.3)
-				end
-			end
-		end
-		task.wait(3)
-	end
-end
-Tabs.Movement:AddToggle("AutoPickupToggle", { Title = "Auto Item Pickup", Default = false, Callback = function(state)
-	autoPickupActive = state
-	if state then
-		if autoPickupThread then task.cancel(autoPickupThread) end
-		autoPickupThread = task.spawn(autoPickupLoop)
-	else
-		if autoPickupThread then task.cancel(autoPickupThread) end
-		autoPickupThread = nil
-	end
-end})
-
-local autoItemUseActive = false
-local autoItemUseThread = nil
-local function autoItemUseLoop()
-	while autoItemUseActive do
-		for _, obj in ipairs(workspace:GetDescendants()) do
-			if obj:IsA("ProximityPrompt") and obj.Parent and string.lower(obj.Parent.Name):find("use") then
-				pcall(function() fireproximityprompt(obj) end)
-			end
-		end
-		task.wait(2)
-	end
-end
-Tabs.Movement:AddToggle("AutoItemUseToggle", { Title = "Auto Item Use", Default = false, Callback = function(state)
-	autoItemUseActive = state
-	if state then
-		if autoItemUseThread then task.cancel(autoItemUseThread) end
-		autoItemUseThread = task.spawn(autoItemUseLoop)
-	else
-		if autoItemUseThread then task.cancel(autoItemUseThread) end
-		autoItemUseThread = nil
-	end
-end})
-
+-- Verbesserte Pickup Research Capsules
 Tabs.Movement:AddButton({ Title = "Pickup Research Capsules", Callback = function()
 	for _, obj in ipairs(workspace:GetDescendants()) do
 		if obj:IsA("BasePart") and string.lower(obj.Name):find("researchcapsule") then
 			local char = workspace.InGamePlayers:FindFirstChild(player.Name)
 			if char and char:FindFirstChild("HumanoidRootPart") then
-				char.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0,2,0)
-				if obj:FindFirstChildOfClass("ProximityPrompt") then
-					pcall(function() fireproximityprompt(obj:FindFirstChildOfClass("ProximityPrompt")) end)
+				-- Teleport zum Capsule-Objekt (etwas höher, damit nicht in der Kapsel stecken)
+				char.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 2, 0)
+				-- Warte etwas langsamer zwischen den Teleports
+				task.wait(1)
+				-- Wenn ein ProximityPrompt vorhanden ist, feuere ihn (simuliert E drücken)
+				local prompt = obj:FindFirstChildOfClass("ProximityPrompt")
+				if prompt then
+					pcall(function() fireproximityprompt(prompt) end)
 				end
-				task.wait(0.2)
+				-- Warte, bevor zum nächsten Kapsel teleportiert wird
+				task.wait(1)
 			end
 		end
 	end
