@@ -31,10 +31,12 @@ local Tabs = {
 local ESPSection = Tabs.ESP:AddSection("ESP Toggles")
 local ColorSection = Tabs.ESP:AddSection("ESP Colors")
 
+-- Monster ESP
 local monsterESPActive = false
 local monsterESPColor = Color3.fromRGB(255,0,0)
 local monsterNametagColor = Color3.new(1,1,1)
-local monsterESPLoop = nil
+local monsterESPThread = nil
+
 local function processMonster(model)
 	if not model or not model:IsA("Model") then return end
 	local lowerName = string.lower(model.Name)
@@ -67,7 +69,8 @@ local function processMonster(model)
 		bb.Parent = head
 	end
 end
-local function monsterESPLoop()
+
+local function monsterESPUpdateLoop()
 	while monsterESPActive do
 		for _, obj in ipairs(workspace:GetDescendants()) do
 			if obj:IsA("Model") then
@@ -77,33 +80,38 @@ local function monsterESPLoop()
 		task.wait(2)
 	end
 end
+
 local function removeMonsterESP()
 	for _, obj in ipairs(workspace:GetDescendants()) do
-		if obj:IsA("Model") then
-			if obj:FindFirstChild("MonsterHighlight") then obj.MonsterHighlight:Destroy() end
+		if obj:IsA("Model") and obj:FindFirstChild("MonsterHighlight") then
+			obj.MonsterHighlight:Destroy()
 		end
-		if obj:IsA("BasePart") then
-			if obj:FindFirstChild("MonsterNametag") then obj.MonsterNametag:Destroy() end
+		if obj:IsA("BasePart") and obj:FindFirstChild("MonsterNametag") then
+			obj.MonsterNametag:Destroy()
 		end
 	end
 end
+
 local function toggleMonsterESP(state)
 	monsterESPActive = state
 	if state then
-		monsterESPLoop = task.spawn(monsterESPLoop)
+		monsterESPThread = task.spawn(monsterESPUpdateLoop)
 	else
-		if monsterESPLoop then task.cancel(monsterESPLoop) end
+		if monsterESPThread then task.cancel(monsterESPThread) end
 		task.delay(0.5, removeMonsterESP)
 	end
 end
+
 ESPSection:AddToggle("MonsterESPToggle", { Title = "Monster ESP", Default = false, Callback = toggleMonsterESP })
 ColorSection:AddColorpicker("MonsterHighlightColor", { Title = "Monster Highlight", Default = monsterESPColor, Callback = function(c) monsterESPColor = c end })
 ColorSection:AddColorpicker("MonsterNametagColor", { Title = "Monster Nametag", Default = monsterNametagColor, Callback = function(c) monsterNametagColor = c end })
 
+-- Machine ESP
 local machineESPActive = false
 local machineESPColor = Color3.fromRGB(0,255,0)
 local machineNametagColor = Color3.new(1,1,1)
-local machineESPLoop = nil
+local machineESPThread = nil
+
 local function processMachine(model)
 	if not model or not model:IsA("Model") then return end
 	local lowerName = string.lower(model.Name)
@@ -136,7 +144,8 @@ local function processMachine(model)
 		bb.Parent = target
 	end
 end
-local function machineESPLoop()
+
+local function machineESPUpdateLoop()
 	while machineESPActive do
 		for _, obj in ipairs(workspace:GetDescendants()) do
 			if obj:IsA("Model") then
@@ -146,32 +155,37 @@ local function machineESPLoop()
 		task.wait(2)
 	end
 end
+
 local function removeMachineESP()
 	for _, obj in ipairs(workspace:GetDescendants()) do
-		if obj:IsA("Model") then
-			if obj:FindFirstChild("MachineHighlight") then obj.MachineHighlight:Destroy() end
+		if obj:IsA("Model") and obj:FindFirstChild("MachineHighlight") then
+			obj.MachineHighlight:Destroy()
 		end
-		if obj:IsA("BasePart") then
-			if obj:FindFirstChild("MachineNametag") then obj.MachineNametag:Destroy() end
+		if obj:IsA("BasePart") and obj:FindFirstChild("MachineNametag") then
+			obj.MachineNametag:Destroy()
 		end
 	end
 end
+
 local function toggleMachineESP(state)
 	machineESPActive = state
 	if state then
-		machineESPLoop = task.spawn(machineESPLoop)
+		machineESPThread = task.spawn(machineESPUpdateLoop)
 	else
-		if machineESPLoop then task.cancel(machineESPLoop) end
+		if machineESPThread then task.cancel(machineESPThread) end
 		task.delay(0.5, removeMachineESP)
 	end
 end
+
 ESPSection:AddToggle("MachineESPToggle", { Title = "Machine ESP", Default = false, Callback = toggleMachineESP })
 ColorSection:AddColorpicker("MachineHighlightColor", { Title = "Machine Highlight", Default = machineESPColor, Callback = function(c) machineESPColor = c end })
 ColorSection:AddColorpicker("MachineNametagColor", { Title = "Machine Nametag", Default = machineNametagColor, Callback = function(c) machineNametagColor = c end })
 
+-- Item ESP
 local itemESPActive = false
 local itemNametagColor = Color3.new(1,1,1)
-local itemESPLoop = nil
+local itemESPThread = nil
+
 local function isInItems(obj)
 	local cur = obj.Parent
 	while cur do
@@ -180,6 +194,7 @@ local function isInItems(obj)
 	end
 	return false
 end
+
 local function getItemModel(part)
 	local cur = part
 	while cur do
@@ -188,6 +203,7 @@ local function getItemModel(part)
 	end
 	return nil
 end
+
 local function getDisplayPart(model)
 	if model.PrimaryPart then return model.PrimaryPart end
 	for _, part in ipairs(model:GetDescendants()) do
@@ -195,6 +211,7 @@ local function getDisplayPart(model)
 	end
 	return nil
 end
+
 local function createItemNametag(part, dispName)
 	if not part or not part:IsA("BasePart") then return end
 	if part:FindFirstChild("ItemNametag") then return end
@@ -212,6 +229,7 @@ local function createItemNametag(part, dispName)
 	bb.Adornee = part
 	bb.Parent = part
 end
+
 local function processItem(part)
 	if typeof(part) ~= "Instance" or not part:IsA("BasePart") then return end
 	if not isInItems(part) then return end
@@ -220,7 +238,8 @@ local function processItem(part)
 	local dp = getDisplayPart(model) or part
 	createItemNametag(dp, model.Name)
 end
-local function itemESPLoop()
+
+local function itemESPUpdateLoop()
 	while itemESPActive do
 		for _, obj in ipairs(workspace:GetDescendants()) do
 			processItem(obj)
@@ -228,10 +247,11 @@ local function itemESPLoop()
 		task.wait(2)
 	end
 end
+
 local function removeItemESP()
 	for _, obj in ipairs(workspace:GetDescendants()) do
-		if obj:IsA("BasePart") then
-			if obj:FindFirstChild("ItemNametag") then obj.ItemNametag:Destroy() end
+		if obj:IsA("BasePart") and obj:FindFirstChild("ItemNametag") then
+			obj.ItemNametag:Destroy()
 		end
 		if obj:IsA("Model") then
 			local tag = obj:FindFirstChild("ItemNametag")
@@ -239,22 +259,26 @@ local function removeItemESP()
 		end
 	end
 end
+
 local function toggleItemESP(state)
 	itemESPActive = state
 	if state then
-		itemESPLoop = task.spawn(itemESPLoop)
+		itemESPThread = task.spawn(itemESPUpdateLoop)
 	else
-		if itemESPLoop then task.cancel(itemESPLoop) end
+		if itemESPThread then task.cancel(itemESPThread) end
 		task.delay(0.5, removeItemESP)
 	end
 end
+
 ESPSection:AddToggle("ItemESPToggle", { Title = "Item ESP", Default = false, Callback = toggleItemESP })
 ColorSection:AddColorpicker("ItemNametagColor", { Title = "Item Nametag", Default = itemNametagColor, Callback = function(c) itemNametagColor = c end })
 
+-- Player ESP
 local playerESPActive = false
 local playerESPColor = Color3.fromRGB(0,0,255)
 local playerNametagColor = Color3.new(1,1,1)
-local playerESPLoop = nil
+local playerESPThread = nil
+
 local function processPlayer(model)
 	if not model or not model:IsA("Model") then return end
 	if model.Parent ~= workspace.InGamePlayers then return end
@@ -286,7 +310,8 @@ local function processPlayer(model)
 		bb.Parent = target
 	end
 end
-local function playerESPLoopFunc()
+
+local function playerESPUpdateLoop()
 	while playerESPActive do
 		for _, obj in ipairs(workspace.InGamePlayers:GetChildren()) do
 			if obj:IsA("Model") then
@@ -296,6 +321,7 @@ local function playerESPLoopFunc()
 		task.wait(2)
 	end
 end
+
 local function removePlayerESP()
 	for _, obj in ipairs(workspace.InGamePlayers:GetChildren()) do
 		if obj:IsA("Model") then
@@ -305,15 +331,17 @@ local function removePlayerESP()
 		end
 	end
 end
+
 local function togglePlayerESP(state)
 	playerESPActive = state
 	if playerESPActive then
-		playerESPLoop = task.spawn(playerESPLoopFunc)
+		playerESPThread = task.spawn(playerESPUpdateLoop)
 	else
-		if playerESPLoop then task.cancel(playerESPLoop) end
+		if playerESPThread then task.cancel(playerESPThread) end
 		task.delay(0.5, removePlayerESP)
 	end
 end
+
 ESPSection:AddToggle("PlayerESPToggle", { Title = "Player ESP", Default = false, Callback = togglePlayerESP })
 ColorSection:AddColorpicker("PlayerHighlightColor", { Title = "Player Highlight", Default = playerESPColor, Callback = function(c) playerESPColor = c end })
 ColorSection:AddColorpicker("PlayerNametagColor", { Title = "Player Nametag", Default = playerNametagColor, Callback = function(c) playerNametagColor = c end })
@@ -387,7 +415,6 @@ local function autoItemUseLoop()
 	while autoItemUseActive do
 		for _, obj in ipairs(workspace:GetDescendants()) do
 			if obj:IsA("ProximityPrompt") and obj.Parent and string.lower(obj.Parent.Name):find("use") then
-				-- Versuche den ProximityPrompt zu feuern
 				pcall(function() fireproximityprompt(obj) end)
 			end
 		end
