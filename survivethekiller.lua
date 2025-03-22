@@ -831,5 +831,12 @@ InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 SaveManager:LoadAutoloadConfig()
 
+-- Added Credits and Discord Notify (ENGLISH ONLY)
+Fluent:Notify({
+    Title = "Credits",
+    Content = "Made by Tapetenputzer. Please add me on Discord!",
+    Duration = 10
+})
+
 Window:SelectTab(1)
-print("Script successfully loaded!")
+print("Script successfully loaded! | Credits: Made by Tapetenputzer | Add me on Discord!")
