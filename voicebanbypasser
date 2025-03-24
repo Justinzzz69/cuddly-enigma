@@ -22,7 +22,7 @@ local Window = Fluent:CreateWindow({
 
 local Tabs = {
 	Player   = Window:AddTab({ Title = "Player",   Icon = "user" }),
-	Chams    = Window:AddTab({ Title = "Chams",    Icon = "eye" }),
+	Chams    = Window:AddTab({ Title = "chams",    Icon = "eye" }),
 	Voice    = Window:AddTab({ Title = "Voice",    Icon = "mic" }),
 	Teleport = Window:AddTab({ Title = "Teleport", Icon = "map" }),
 	Info     = Window:AddTab({ Title = "Info",     Icon = "heart" }),
@@ -253,8 +253,8 @@ local function chamsLoop()
 	end
 end
 
-local ChamsSection = Tabs.Chams:AddSection("Chams")
-ChamsSection:AddToggle("ChamsToggle", { Title = "Chams", Default = false }):OnChanged(function(state)
+local chamsSection = Tabs.Chams:AddSection("chams")
+chamsSection:AddToggle("ChamsToggle", { Title = "chams", Default = false }):OnChanged(function(state)
 	chamsActive = state
 	if state then
 		chamsTask = task.spawn(chamsLoop)
@@ -264,18 +264,16 @@ ChamsSection:AddToggle("ChamsToggle", { Title = "Chams", Default = false }):OnCh
 		RemoveChams()
 	end
 end)
-ChamsSection:AddColorpicker("ChamsColor", { Title = "Chams Color", Default = chamsColor }):OnChanged(function(c)
+chamsSection:AddColorpicker("ChamsColor", { Title = "chams color", Default = chamsColor }):OnChanged(function(c)
 	chamsColor = c
 end)
 
-local nametagSize = 50
 local NametagsActive = false
 local nametagTask
-
 local function CreateNametag(p)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "Nametag"
-	billboard.Size = UDim2.new(0, nametagSize, 0, nametagSize)
+	billboard.Size = UDim2.new(0, 50, 0, 50)
 	billboard.StudsOffset = Vector3.new(0, 2, 0)
 	billboard.AlwaysOnTop = true
 	local frame = Instance.new("Frame", billboard)
@@ -311,7 +309,7 @@ local function UpdateNametags()
 				local tag = CreateNametag(p)
 				tag.Parent = head
 			else
-				existing.Size = UDim2.new(0, nametagSize, 0, nametagSize)
+				existing.Size = UDim2.new(0, 50, 0, 50)
 				local frame = existing:FindFirstChildOfClass("Frame")
 				if frame then
 					local lbl = frame:FindFirstChildOfClass("TextLabel")
@@ -331,8 +329,8 @@ local function NametagsLoop()
 	end
 end
 
-local NametagsSection = Tabs.Chams:AddSection("NAMETAGS")
-NametagsSection:AddToggle("NametagsToggle", { Title = "Enable Nametag", Default = false }):OnChanged(function(s)
+local nametagsSection = Tabs.Chams:AddSection("nametags")
+nametagsSection:AddToggle("NametagsToggle", { Title = "enable nametag", Default = false }):OnChanged(function(s)
 	NametagsActive = s
 	if s then
 		nametagTask = task.spawn(NametagsLoop)
