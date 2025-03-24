@@ -47,7 +47,7 @@ VoiceSection:AddButton({
 				print("Attempted to join voice.")
 			end
 		else
-			warn("VoiceChatService or joinVoice() not available.")
+			warn("VoiceChatService oder joinVoice() nicht verfügbar.")
 		end
 	end
 })
@@ -79,9 +79,11 @@ local function enableFly()
 		flyBodyVelocity = Instance.new("BodyVelocity", root)
 		flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
 		flyBodyVelocity.MaxForce = Vector3.new(1e5,1e5,1e5)
+
 		flyBodyGyro = Instance.new("BodyGyro", root)
 		flyBodyGyro.MaxTorque = Vector3.new(1e5,1e5,1e5)
 		flyBodyGyro.CFrame = root.CFrame
+
 		flyConnection = RunService.RenderStepped:Connect(function()
 			local dir = Vector3.new(0, 0, 0)
 			if UserInputService:IsKeyDown(Enum.KeyCode.W) then
@@ -102,6 +104,7 @@ local function enableFly()
 			if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
 				dir = dir - Vector3.new(0,1,0)
 			end
+
 			if dir.Magnitude > 0 then
 				flyBodyVelocity.Velocity = dir.Unit * flySpeed
 			else
@@ -152,28 +155,30 @@ local function enableFreecam()
 	oldCamSubject = cam.CameraSubject
 	oldCFrame = cam.CFrame
 	freecamCFrame = cam.CFrame
-	
-	-- Anchor the character to avoid movement
+
+	-- Charakter festsetzen
 	local char = LocalPlayer.Character
 	if char and char:FindFirstChild("HumanoidRootPart") then
 		char.HumanoidRootPart.Anchored = true
 	end
-	
+
 	hideCharacter()
 	cam.CameraType = Enum.CameraType.Scriptable
 	UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
 	UserInputService.MouseIconEnabled = false
-	
+
 	freecamConnection = RunService.RenderStepped:Connect(function(dt)
 		local moveVec = Vector3.new(
 			(UserInputService:IsKeyDown(Enum.KeyCode.D) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.A) and 1 or 0),
 			(UserInputService:IsKeyDown(Enum.KeyCode.Space) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) and 1 or 0),
 			(UserInputService:IsKeyDown(Enum.KeyCode.S) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.W) and 1 or 0)
 		)
+
 		if moveVec.Magnitude > 0 then
 			moveVec = moveVec.Unit * freecamSpeed * dt
 			freecamCFrame = freecamCFrame * CFrame.new(moveVec)
 		end
+
 		local delta = UserInputService:GetMouseDelta()
 		if delta.Magnitude ~= 0 then
 			local sensitivity = 0.3
@@ -218,6 +223,7 @@ PlayerSection:AddSlider("SpeedSlider", {
 	currentSpeed = value
 	setWalkSpeed(currentSpeed)
 end)
+
 PlayerSection:AddToggle("FlyToggle", {
 	Title = "Fly",
 	Default = false
@@ -228,6 +234,7 @@ PlayerSection:AddToggle("FlyToggle", {
 		disableFly()
 	end
 end)
+
 PlayerSection:AddSlider("FlySpeedSlider", {
 	Title = "Fly Speed",
 	Default = 50,
@@ -237,6 +244,7 @@ PlayerSection:AddSlider("FlySpeedSlider", {
 }):OnChanged(function(value)
 	flySpeed = value
 end)
+
 local FreecamSection = Tabs.Player:AddSection("Freecam")
 FreecamSection:AddToggle("FreecamToggle", {
 	Title = "Freecam",
@@ -248,6 +256,7 @@ FreecamSection:AddToggle("FreecamToggle", {
 		disableFreecam()
 	end
 end)
+
 FreecamSection:AddSlider("FreecamSpeedSlider", {
 	Title = "Freecam Speed",
 	Default = 50,
@@ -322,6 +331,7 @@ ESPSection:AddToggle("ESPToggle", {
 		RemoveESP()
 	end
 end)
+
 ESPSection:AddColorpicker("ESPColor", {
 	Title = "ESP Color",
 	Default = espColor
@@ -332,18 +342,22 @@ end)
 local NametagsSection = Tabs.ESP:AddSection("Nametags")
 local NametagsActive = false
 local nametagTask
+
 local function CreateNametag(p)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "Nametag"
 	billboard.Size = UDim2.new(0, 150, 0, 50)
 	billboard.StudsOffset = Vector3.new(0, 2, 0)
 	billboard.AlwaysOnTop = true
+
 	local frame = Instance.new("Frame", billboard)
 	frame.Size = UDim2.new(1, 0, 1, 0)
 	frame.BackgroundTransparency = 0.5
 	frame.BackgroundColor3 = Color3.new(0, 0, 0)
+
 	local uicorner = Instance.new("UICorner", frame)
 	uicorner.CornerRadius = UDim.new(1, 0)
+
 	local label = Instance.new("TextLabel", frame)
 	label.Size = UDim2.new(1, 0, 1, 0)
 	label.BackgroundTransparency = 1
@@ -352,6 +366,7 @@ local function CreateNametag(p)
 	label.Font = Enum.Font.GothamBold
 	label.TextColor3 = espColor
 	label.TextStrokeTransparency = 0.3
+
 	return billboard
 end
 
@@ -413,6 +428,39 @@ InfoSection:AddParagraph({
 	Title = "Info",
 	Content = "Made by Tapetenputzer\nDiscord: tapetenputzer"
 })
+
+--------------------------------------------------
+-- NEUER TELEPORT-TAB
+--------------------------------------------------
+Tabs.Teleport = Window:AddTab({ Title = "Teleport", Icon = "map" })
+local TeleportSection = Tabs.Teleport:AddSection("Teleport Players")
+
+-- Funktion zum Teleportieren
+local function TeleportToPlayer(targetPlayer)
+	local localChar = LocalPlayer.Character
+	local targetChar = targetPlayer.Character
+
+	if localChar and targetChar then
+		local root = localChar:FindFirstChild("HumanoidRootPart")
+		local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+		if root and targetRoot then
+			-- Teleport
+			root.CFrame = targetRoot.CFrame
+		end
+	end
+end
+
+-- Buttons für alle Spieler (außer man selbst) erstellen
+for _, plr in pairs(Players:GetPlayers()) do
+	if plr ~= LocalPlayer then
+		TeleportSection:AddButton({
+			Title = plr.Name,
+			Callback = function()
+				TeleportToPlayer(plr)
+			end
+		})
+	end
+end
 
 --------------------------------------------------
 -- SETTINGS TAB
