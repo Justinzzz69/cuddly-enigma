@@ -1,0 +1,333 @@
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualUser = game:GetService("VirtualUser")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local VoiceChatService = game:GetService("VoiceChatService")
+
+local LocalPlayer = Players.LocalPlayer
+
+local Window = Fluent:CreateWindow({
+	Title = "Fart",
+	SubTitle = "",
+	TabWidth = 160,
+	Size = UDim2.fromOffset(580, 460),
+	Acrylic = true,
+	Theme = "Dark",
+	MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+local Tabs = {
+	Voice = Window:AddTab({ Title = "Voice", Icon = "mic" }),
+	ESP = Window:AddTab({ Title = "ESP", Icon = "eye" }),
+	Player = Window:AddTab({ Title = "Player", Icon = "user" }),
+	Settings = Window:AddTab({ Title = "Settings", Icon = "settings" }),
+	Info = Window:AddTab({ Title = "Info", Icon = "heart" })
+}
+
+--------------------------------------------------
+-- VOICE TAB
+--------------------------------------------------
+local VoiceSection = Tabs.Voice:AddSection("Voice Chat")
+VoiceSection:AddButton({
+	Title = "Bypass Voiceban",
+	Callback = function()
+		if VoiceChatService and VoiceChatService.joinVoice then
+			local success, err = pcall(function()
+				VoiceChatService:joinVoice()
+			end)
+			if not success then
+				warn("Voice join failed: " .. err)
+			else
+				print("Attempted to join voice.")
+			end
+		else
+			warn("VoiceChatService or joinVoice() not available.")
+		end
+	end
+})
+
+--------------------------------------------------
+-- PLAYER TAB: SPEED & FLY
+--------------------------------------------------
+local currentSpeed = 16
+local flyActive = false
+local flySpeed = 50
+local flyBodyVelocity, flyBodyGyro, flyConnection
+
+local function setWalkSpeed(speed)
+	local char = LocalPlayer.Character
+	if char and char:FindFirstChild("Humanoid") then
+		char.Humanoid.WalkSpeed = speed
+	end
+end
+
+local function enableFly()
+	local char = LocalPlayer.Character
+	if char and char:FindFirstChild("HumanoidRootPart") then
+		local root = char.HumanoidRootPart
+		flyBodyVelocity = Instance.new("BodyVelocity", root)
+		flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+		flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+		flyBodyGyro = Instance.new("BodyGyro", root)
+		flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+		flyBodyGyro.CFrame = root.CFrame
+		flyConnection = RunService.RenderStepped:Connect(function()
+			local dir = Vector3.new(0, 0, 0)
+			if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+				dir = dir + Workspace.CurrentCamera.CFrame.LookVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+				dir = dir - Workspace.CurrentCamera.CFrame.LookVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+				dir = dir - Workspace.CurrentCamera.CFrame.RightVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+				dir = dir + Workspace.CurrentCamera.CFrame.RightVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+				dir = dir + Vector3.new(0,1,0)
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+				dir = dir - Vector3.new(0,1,0)
+			end
+			if dir.Magnitude > 0 then
+				flyBodyVelocity.Velocity = dir.Unit * flySpeed
+			else
+				flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+			end
+			flyBodyGyro.CFrame = Workspace.CurrentCamera.CFrame
+		end)
+	end
+end
+
+local function disableFly()
+	if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
+	if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
+	if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+end
+
+local PlayerSection = Tabs.Player:AddSection("Speed & Fly")
+local SpeedSlider = PlayerSection:AddSlider("SpeedSlider", {
+	Title = "Walk Speed",
+	Default = 16,
+	Min = 0,
+	Max = 100,
+	Rounding = 0
+})
+SpeedSlider:OnChanged(function(value)
+	currentSpeed = value
+	setWalkSpeed(currentSpeed)
+end)
+
+local FlyToggle = PlayerSection:AddToggle("FlyToggle", {
+	Title = "Fly",
+	Default = false
+})
+FlyToggle:OnChanged(function(state)
+	if state then
+		enableFly()
+	else
+		disableFly()
+	end
+end)
+
+local FlySpeedSlider = PlayerSection:AddSlider("FlySpeedSlider", {
+	Title = "Fly Speed",
+	Default = 50,
+	Min = 0,
+	Max = 300,
+	Rounding = 0
+})
+FlySpeedSlider:OnChanged(function(value)
+	flySpeed = value
+end)
+
+--------------------------------------------------
+-- ESP TAB: CHAMS & NAMETAGS
+--------------------------------------------------
+local espActive = false
+local espColor = Color3.fromRGB(255, 0, 0) -- single uniform color
+
+local function RemoveESP()
+	for _, p in pairs(Players:GetPlayers()) do
+		if p.Character then
+			for _, part in pairs(p.Character:GetDescendants()) do
+				if part:IsA("BasePart") and part:FindFirstChild("ESPBox") then
+					part.ESPBox:Destroy()
+				end
+			end
+		end
+	end
+end
+
+local function UpdateESP()
+	for _, p in pairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer and p.Character then
+			for _, part in pairs(p.Character:GetDescendants()) do
+				if part:IsA("BasePart") then
+					local box = part:FindFirstChild("ESPBox")
+					if not box then
+						box = Instance.new("BoxHandleAdornment")
+						box.Name = "ESPBox"
+						box.Adornee = part
+						box.AlwaysOnTop = true
+						box.ZIndex = 10
+						box.Size = part.Size + Vector3.new(0.1, 0.1, 0.1)
+						box.Transparency = 0.5
+						box.Color3 = espColor
+						box.Parent = part
+					else
+						box.Color3 = espColor
+					end
+				end
+			end
+		end
+	end
+end
+
+local espTask
+local function espLoop()
+	while espActive do
+		UpdateESP()
+		task.wait(2)
+	end
+end
+
+local ESPSection = Tabs.ESP:AddSection("ESP")
+local ESPToggle = ESPSection:AddToggle("ESPToggle", {
+	Title = "ESP",
+	Default = false
+})
+ESPToggle:OnChanged(function(state)
+	espActive = state
+	if state then
+		espTask = task.spawn(espLoop)
+	else
+		if espTask then task.cancel(espTask); espTask = nil end
+		RemoveESP()
+	end
+end)
+
+local ESPColorPicker = ESPSection:AddColorpicker("ESPColor", {
+	Title = "ESP Color",
+	Default = espColor
+})
+ESPColorPicker:OnChanged(function(c)
+	espColor = c
+end)
+
+--------------------------------------------------
+-- NAMETAGS (within ESP tab)
+--------------------------------------------------
+local NametagsActive = false
+local function CreateNametag(p)
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "Nametag"
+	billboard.Size = UDim2.new(0, 150, 0, 50)
+	billboard.StudsOffset = Vector3.new(0, 2, 0)
+	billboard.AlwaysOnTop = true
+	local frame = Instance.new("Frame", billboard)
+	frame.Size = UDim2.new(1, 0, 1, 0)
+	frame.BackgroundTransparency = 0.5
+	frame.BackgroundColor3 = Color3.new(0, 0, 0)
+	local uicorner = Instance.new("UICorner", frame)
+	uicorner.CornerRadius = UDim.new(1, 0)
+	local label = Instance.new("TextLabel", frame)
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.Text = p.Name
+	label.TextScaled = true
+	label.Font = Enum.Font.GothamBold
+	label.TextColor3 = espColor
+	label.TextStrokeTransparency = 0.3
+	return billboard
+end
+
+local function RemoveNametags()
+	for _, p in pairs(Players:GetPlayers()) do
+		if p.Character and p.Character:FindFirstChild("Head") then
+			local tag = p.Character.Head:FindFirstChild("Nametag")
+			if tag then tag:Destroy() end
+		end
+	end
+end
+
+local function UpdateNametags()
+	for _, p in pairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+			local head = p.Character.Head
+			local existing = head:FindFirstChild("Nametag")
+			if not existing then
+				local tag = CreateNametag(p)
+				tag.Parent = head
+			else
+				local frame = existing:FindFirstChildOfClass("Frame")
+				if frame then
+					local lbl = frame:FindFirstChildOfClass("TextLabel")
+					if lbl then
+						lbl.TextColor3 = espColor
+					end
+				end
+			end
+		end
+	end
+end
+
+local nametagTask
+local function NametagsLoop()
+	while NametagsActive do
+		UpdateNametags()
+		task.wait(2)
+	end
+end
+
+local NametagsToggle = Tabs.ESP:AddSection("Nametags"):AddToggle("NametagsToggle", {
+	Title = "Nametags",
+	Default = false
+})
+NametagsToggle:OnChanged(function(s)
+	NametagsActive = s
+	if s then
+		nametagTask = task.spawn(NametagsLoop)
+	else
+		if nametagTask then task.cancel(nametagTask); nametagTask = nil end
+		RemoveNametags()
+	end
+end)
+
+--------------------------------------------------
+-- INFO TAB
+--------------------------------------------------
+local InfoSection = Tabs.Info:AddSection("Info")
+InfoSection:AddParagraph({
+	Title = "Info",
+	Content = "Made by Tapetenputzer\nDiscord: tapetenputzer"
+})
+
+--------------------------------------------------
+-- SETTINGS TAB
+--------------------------------------------------
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+InterfaceManager:SetFolder("FluentScriptHub_MicUp")
+SaveManager:SetFolder("FluentScriptHub_MicUp/configs")
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
+SaveManager:LoadAutoloadConfig()
+
+Fluent:Notify({
+	Title = "Made by Tapetenputzer",
+	Content = "Script Loaded!",
+	Duration = 5
+})
+
+Window:SelectTab(1)
