@@ -13,7 +13,7 @@ local VoiceChatService = game:GetService("VoiceChatService")
 local LocalPlayer = Players.LocalPlayer
 
 local Window = Fluent:CreateWindow({
-	Title = "Fart",
+	Title = "Voice Ban Bypasser",
 	SubTitle = "",
 	TabWidth = 160,
 	Size = UDim2.fromOffset(580, 460),
@@ -53,12 +53,17 @@ VoiceSection:AddButton({
 })
 
 --------------------------------------------------
--- PLAYER TAB: SPEED & FLY
+-- PLAYER TAB: SPEED, FLY & FREECAM
 --------------------------------------------------
 local currentSpeed = 16
-local flyActive = false
 local flySpeed = 50
+local freecamSpeed = 50
+
 local flyBodyVelocity, flyBodyGyro, flyConnection
+local freecamEnabled = false
+local freecamConnection
+local oldCameraType, oldCamSubject, oldCFrame
+local freecamCFrame
 
 local function setWalkSpeed(speed)
 	local char = LocalPlayer.Character
@@ -73,9 +78,9 @@ local function enableFly()
 		local root = char.HumanoidRootPart
 		flyBodyVelocity = Instance.new("BodyVelocity", root)
 		flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-		flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+		flyBodyVelocity.MaxForce = Vector3.new(1e5,1e5,1e5)
 		flyBodyGyro = Instance.new("BodyGyro", root)
-		flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+		flyBodyGyro.MaxTorque = Vector3.new(1e5,1e5,1e5)
 		flyBodyGyro.CFrame = root.CFrame
 		flyConnection = RunService.RenderStepped:Connect(function()
 			local dir = Vector3.new(0, 0, 0)
@@ -113,47 +118,151 @@ local function disableFly()
 	if flyConnection then flyConnection:Disconnect() flyConnection = nil end
 end
 
-local PlayerSection = Tabs.Player:AddSection("Speed & Fly")
-local SpeedSlider = PlayerSection:AddSlider("SpeedSlider", {
+local function hideCharacter()
+	local char = LocalPlayer.Character
+	if not char then return end
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.LocalTransparencyModifier = 1
+			part.CanCollide = false
+		elseif part:IsA("Decal") or part:IsA("Texture") then
+			part.Transparency = 1
+		end
+	end
+end
+
+local function showCharacter()
+	local char = LocalPlayer.Character
+	if not char then return end
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.LocalTransparencyModifier = 0
+			part.CanCollide = true
+		elseif part:IsA("Decal") or part:IsA("Texture") then
+			part.Transparency = 0
+		end
+	end
+end
+
+local function enableFreecam()
+	if freecamEnabled then return end
+	freecamEnabled = true
+	local cam = Workspace.CurrentCamera
+	oldCameraType = cam.CameraType
+	oldCamSubject = cam.CameraSubject
+	oldCFrame = cam.CFrame
+	freecamCFrame = cam.CFrame
+	
+	-- Anchor the character to avoid movement
+	local char = LocalPlayer.Character
+	if char and char:FindFirstChild("HumanoidRootPart") then
+		char.HumanoidRootPart.Anchored = true
+	end
+	
+	hideCharacter()
+	cam.CameraType = Enum.CameraType.Scriptable
+	UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+	UserInputService.MouseIconEnabled = false
+	
+	freecamConnection = RunService.RenderStepped:Connect(function(dt)
+		local moveVec = Vector3.new(
+			(UserInputService:IsKeyDown(Enum.KeyCode.D) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.A) and 1 or 0),
+			(UserInputService:IsKeyDown(Enum.KeyCode.Space) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) and 1 or 0),
+			(UserInputService:IsKeyDown(Enum.KeyCode.S) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.W) and 1 or 0)
+		)
+		if moveVec.Magnitude > 0 then
+			moveVec = moveVec.Unit * freecamSpeed * dt
+			freecamCFrame = freecamCFrame * CFrame.new(moveVec)
+		end
+		local delta = UserInputService:GetMouseDelta()
+		if delta.Magnitude ~= 0 then
+			local sensitivity = 0.3
+			freecamCFrame = freecamCFrame * CFrame.Angles(
+				-math.rad(delta.Y * sensitivity),
+				-math.rad(delta.X * sensitivity),
+				0
+			)
+		end
+		cam.CFrame = freecamCFrame
+	end)
+end
+
+local function disableFreecam()
+	if not freecamEnabled then return end
+	freecamEnabled = false
+	if freecamConnection then
+		freecamConnection:Disconnect()
+		freecamConnection = nil
+	end
+	local cam = Workspace.CurrentCamera
+	cam.CameraType = oldCameraType or Enum.CameraType.Custom
+	cam.CameraSubject = oldCamSubject or LocalPlayer.Character
+	cam.CFrame = oldCFrame or cam.CFrame
+	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+	UserInputService.MouseIconEnabled = true
+	showCharacter()
+	local char = LocalPlayer.Character
+	if char and char:FindFirstChild("HumanoidRootPart") then
+		char.HumanoidRootPart.Anchored = false
+	end
+end
+
+local PlayerSection = Tabs.Player:AddSection("Speed, Fly & Freecam")
+PlayerSection:AddSlider("SpeedSlider", {
 	Title = "Walk Speed",
 	Default = 16,
 	Min = 0,
 	Max = 100,
 	Rounding = 0
-})
-SpeedSlider:OnChanged(function(value)
+}):OnChanged(function(value)
 	currentSpeed = value
 	setWalkSpeed(currentSpeed)
 end)
-
-local FlyToggle = PlayerSection:AddToggle("FlyToggle", {
+PlayerSection:AddToggle("FlyToggle", {
 	Title = "Fly",
 	Default = false
-})
-FlyToggle:OnChanged(function(state)
+}):OnChanged(function(state)
 	if state then
 		enableFly()
 	else
 		disableFly()
 	end
 end)
-
-local FlySpeedSlider = PlayerSection:AddSlider("FlySpeedSlider", {
+PlayerSection:AddSlider("FlySpeedSlider", {
 	Title = "Fly Speed",
 	Default = 50,
 	Min = 0,
 	Max = 300,
 	Rounding = 0
-})
-FlySpeedSlider:OnChanged(function(value)
+}):OnChanged(function(value)
 	flySpeed = value
+end)
+local FreecamSection = Tabs.Player:AddSection("Freecam")
+FreecamSection:AddToggle("FreecamToggle", {
+	Title = "Freecam",
+	Default = false
+}):OnChanged(function(state)
+	if state then
+		enableFreecam()
+	else
+		disableFreecam()
+	end
+end)
+FreecamSection:AddSlider("FreecamSpeedSlider", {
+	Title = "Freecam Speed",
+	Default = 50,
+	Min = 0,
+	Max = 300,
+	Rounding = 0
+}):OnChanged(function(value)
+	freecamSpeed = value
 end)
 
 --------------------------------------------------
 -- ESP TAB: CHAMS & NAMETAGS
 --------------------------------------------------
 local espActive = false
-local espColor = Color3.fromRGB(255, 0, 0) -- single uniform color
+local espColor = Color3.fromRGB(255, 0, 0)
 
 local function RemoveESP()
 	for _, p in pairs(Players:GetPlayers()) do
@@ -201,11 +310,10 @@ local function espLoop()
 end
 
 local ESPSection = Tabs.ESP:AddSection("ESP")
-local ESPToggle = ESPSection:AddToggle("ESPToggle", {
+ESPSection:AddToggle("ESPToggle", {
 	Title = "ESP",
 	Default = false
-})
-ESPToggle:OnChanged(function(state)
+}):OnChanged(function(state)
 	espActive = state
 	if state then
 		espTask = task.spawn(espLoop)
@@ -214,19 +322,16 @@ ESPToggle:OnChanged(function(state)
 		RemoveESP()
 	end
 end)
-
-local ESPColorPicker = ESPSection:AddColorpicker("ESPColor", {
+ESPSection:AddColorpicker("ESPColor", {
 	Title = "ESP Color",
 	Default = espColor
-})
-ESPColorPicker:OnChanged(function(c)
+}):OnChanged(function(c)
 	espColor = c
 end)
 
---------------------------------------------------
--- NAMETAGS (within ESP tab)
---------------------------------------------------
+local NametagsSection = Tabs.ESP:AddSection("Nametags")
 local NametagsActive = false
+local nametagTask
 local function CreateNametag(p)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "Nametag"
@@ -280,7 +385,6 @@ local function UpdateNametags()
 	end
 end
 
-local nametagTask
 local function NametagsLoop()
 	while NametagsActive do
 		UpdateNametags()
@@ -288,11 +392,10 @@ local function NametagsLoop()
 	end
 end
 
-local NametagsToggle = Tabs.ESP:AddSection("Nametags"):AddToggle("NametagsToggle", {
-	Title = "Nametags",
+NametagsSection:AddToggle("NametagsToggle", {
+	Title = "Enable Nametags",
 	Default = false
-})
-NametagsToggle:OnChanged(function(s)
+}):OnChanged(function(s)
 	NametagsActive = s
 	if s then
 		nametagTask = task.spawn(NametagsLoop)
@@ -325,7 +428,7 @@ SaveManager:BuildConfigSection(Tabs.Settings)
 SaveManager:LoadAutoloadConfig()
 
 Fluent:Notify({
-	Title = "Made by Tapetenputzer",
+	Title = "Voice Ban Bypasser",
 	Content = "Script Loaded!",
 	Duration = 5
 })
