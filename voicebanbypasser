@@ -207,7 +207,7 @@ local function disableFreecam()
 	end
 end
 
-local PlayerSection = Tabs.Player:AddSection("Speed, Fly & Freecam")
+local PlayerSection = Tabs.Player:AddSection("Speed, Fly")
 PlayerSection:AddSlider("SpeedSlider", {
 	Title = "Walk Speed",
 	Default = 16,
