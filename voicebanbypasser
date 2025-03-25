@@ -39,6 +39,9 @@ local freecamConnection
 local oldCameraType, oldCamSubject, oldCFrame
 local freecamCFrame
 
+---------------------------------------------------------------------
+-- Funktionen für Speed, Fly, Freecam
+---------------------------------------------------------------------
 local function setWalkSpeed(speed)
 	local char = LocalPlayer.Character
 	if char and char:FindFirstChild("Humanoid") then
@@ -177,6 +180,9 @@ local function disableFreecam()
 	end
 end
 
+---------------------------------------------------------------------
+-- Tab: Player
+---------------------------------------------------------------------
 local PlayerSection = Tabs.Player:AddSection("Speed, Fly")
 PlayerSection:AddSlider("SpeedSlider", { Title = "Walk Speed", Default = 16, Min = 0, Max = 100, Rounding = 0 }):OnChanged(function(value)
 	currentSpeed = value
@@ -205,6 +211,40 @@ FreecamSection:AddSlider("FreecamSpeedSlider", { Title = "Freecam Speed", Defaul
 	freecamSpeed = value
 end)
 
+-- Anti AFK
+local AntiAFKSection = Tabs.Player:AddSection("Anti AFK")
+local AFKConnection
+
+local function EnableAntiAFK()
+	-- Falls schon aktiv, beenden und neu starten
+	if AFKConnection then
+		AFKConnection:Disconnect()
+		AFKConnection = nil
+	end
+	AFKConnection = LocalPlayer.Idled:Connect(function()
+		game:GetService("VirtualUser"):CaptureController()
+		game:GetService("VirtualUser"):ClickButton2(Vector2.new())
+	end)
+end
+
+local function DisableAntiAFK()
+	if AFKConnection then
+		AFKConnection:Disconnect()
+		AFKConnection = nil
+	end
+end
+
+AntiAFKSection:AddToggle("AntiAFKToggle", { Title = "Anti AFK", Default = false }):OnChanged(function(state)
+	if state then
+		EnableAntiAFK()
+	else
+		DisableAntiAFK()
+	end
+end)
+
+---------------------------------------------------------------------
+-- Tab: Chams (ESP / Nametags)
+---------------------------------------------------------------------
 local chamsActive = false
 local chamsColor = Color3.fromRGB(255, 255, 255)
 
@@ -268,6 +308,9 @@ chamsSection:AddColorpicker("ChamsColor", { Title = "chams color", Default = cha
 	chamsColor = c
 end)
 
+---------------------------------------------------------------------
+-- Nametags
+---------------------------------------------------------------------
 local NametagsActive = false
 local nametagTask
 local function CreateNametag(p)
@@ -341,7 +384,12 @@ nametagsSection:AddToggle("NametagsToggle", { Title = "enable nametag", Default 
 	end
 end)
 
+---------------------------------------------------------------------
+-- Tab: Voice
+---------------------------------------------------------------------
 local VoiceSection = Tabs.Voice:AddSection("Voice Chat")
+
+-- Manuelles Voice-Join
 VoiceSection:AddButton({ Title = "Bypass Voiceban", Callback = function()
 	if VoiceChatService and VoiceChatService.joinVoice then
 		local success, err = pcall(function()
@@ -357,21 +405,70 @@ VoiceSection:AddButton({ Title = "Bypass Voiceban", Callback = function()
 	end
 end})
 
-local TeleportSection = Tabs.Teleport:AddSection("Teleport Players")
--- Überarbeitete Teleportfunktion: Es wird sichergestellt, dass beide Charaktere geladen sind
-local function TeleportToPlayer(targetPlayer)
-	local localChar = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-	local targetChar = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
-	local root = localChar:WaitForChild("HumanoidRootPart")
-	local targetRoot = targetChar:WaitForChild("HumanoidRootPart")
-	if root and targetRoot then
-		root.CFrame = targetRoot.CFrame
-	else
-		warn("Teleportation konnte nicht ausgeführt werden, da einer der HumanoidRootParts nicht gefunden wurde.")
+-- Prüfen, ob bereits verbunden ist (Fallback nur über 'Running')
+local function isVoiceConnected()
+	if not VoiceChatService then 
+		return false 
+	end
+	local success, result = pcall(function()
+		return VoiceChatService.Running
+	end)
+	if success and result == true then
+		return true
+	end
+	return false
+end
+
+-- Automatisches Voice-Join
+local autoVoiceJoinActive = false
+local autoVoiceJoinTask
+
+local function autoVoiceJoinLoop()
+	while autoVoiceJoinActive do
+		if not isVoiceConnected() then
+			if VoiceChatService and VoiceChatService.joinVoice then
+				local success, err = pcall(function()
+					VoiceChatService:joinVoice()
+				end)
+				if success then
+					print("Auto Voice Join: Versuch, Voicechat beizutreten.")
+				else
+					warn("Auto Voice Join fehlgeschlagen: " .. err)
+				end
+			end
+		end
+		task.wait(5) -- alle 5 Sekunden prüfen
 	end
 end
 
--- Teleport-Buttons für bereits vorhandene Spieler
+VoiceSection:AddToggle("AutoVoiceJoinToggle", { Title = "Auto Voice Join (experimental)", Default = false }):OnChanged(function(state)
+	autoVoiceJoinActive = state
+	if state then
+		autoVoiceJoinTask = task.spawn(autoVoiceJoinLoop)
+	else
+		if autoVoiceJoinTask then task.cancel(autoVoiceJoinTask) end
+		autoVoiceJoinTask = nil
+	end
+end)
+
+---------------------------------------------------------------------
+-- Tab: Teleport
+---------------------------------------------------------------------
+local TeleportSection = Tabs.Teleport:AddSection("Teleport Players")
+
+local function TeleportToPlayer(targetPlayer)
+	local localChar = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	local targetChar = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
+	local root = localChar:WaitForChild("HumanoidRootPart", 5)
+	local targetRoot = targetChar:WaitForChild("HumanoidRootPart", 5)
+	if root and targetRoot then
+		root.CFrame = targetRoot.CFrame
+	else
+		warn("Teleportation fehlgeschlagen, kein HumanoidRootPart gefunden.")
+	end
+end
+
+-- Buttons für bereits vorhandene Spieler
 for _, plr in pairs(Players:GetPlayers()) do
 	if plr ~= LocalPlayer then
 		TeleportSection:AddButton({ Title = plr.Name, Callback = function()
@@ -380,7 +477,7 @@ for _, plr in pairs(Players:GetPlayers()) do
 	end
 end
 
--- Hinzufügen von Teleport-Buttons, wenn neue Spieler dem Spiel beitreten
+-- Neue Spieler -> Teleport-Button hinzufügen
 Players.PlayerAdded:Connect(function(plr)
 	if plr ~= LocalPlayer then
 		TeleportSection:AddButton({ Title = plr.Name, Callback = function()
@@ -389,13 +486,19 @@ Players.PlayerAdded:Connect(function(plr)
 	end
 end)
 
+---------------------------------------------------------------------
+-- Tab: Info
+---------------------------------------------------------------------
 local InfoSection = Tabs.Info:AddSection("Info")
 InfoSection:AddParagraph({ Title = "Info", Content = "Made by Tapetenputzer\nDiscord: tapetenputzer" })
 
+---------------------------------------------------------------------
+-- Settings, Speichern, Laden
+---------------------------------------------------------------------
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 SaveManager:IgnoreThemeSettings()
-SaveManager:SetIgnoreIndexes({}) 
+SaveManager:SetIgnoreIndexes({})
 InterfaceManager:SetFolder("FluentScriptHub_MicUp")
 SaveManager:SetFolder("FluentScriptHub_MicUp/configs")
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
