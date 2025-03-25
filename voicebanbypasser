@@ -358,18 +358,20 @@ VoiceSection:AddButton({ Title = "Bypass Voiceban", Callback = function()
 end})
 
 local TeleportSection = Tabs.Teleport:AddSection("Teleport Players")
+-- Überarbeitete Teleportfunktion: Es wird sichergestellt, dass beide Charaktere geladen sind
 local function TeleportToPlayer(targetPlayer)
-	local localChar = LocalPlayer.Character
-	local targetChar = targetPlayer.Character
-	if localChar and targetChar then
-		local root = localChar:FindFirstChild("HumanoidRootPart")
-		local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
-		if root and targetRoot then
-			root.CFrame = targetRoot.CFrame
-		end
+	local localChar = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	local targetChar = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
+	local root = localChar:WaitForChild("HumanoidRootPart")
+	local targetRoot = targetChar:WaitForChild("HumanoidRootPart")
+	if root and targetRoot then
+		root.CFrame = targetRoot.CFrame
+	else
+		warn("Teleportation konnte nicht ausgeführt werden, da einer der HumanoidRootParts nicht gefunden wurde.")
 	end
 end
 
+-- Teleport-Buttons für bereits vorhandene Spieler
 for _, plr in pairs(Players:GetPlayers()) do
 	if plr ~= LocalPlayer then
 		TeleportSection:AddButton({ Title = plr.Name, Callback = function()
@@ -378,13 +380,22 @@ for _, plr in pairs(Players:GetPlayers()) do
 	end
 end
 
+-- Hinzufügen von Teleport-Buttons, wenn neue Spieler dem Spiel beitreten
+Players.PlayerAdded:Connect(function(plr)
+	if plr ~= LocalPlayer then
+		TeleportSection:AddButton({ Title = plr.Name, Callback = function()
+			TeleportToPlayer(plr)
+		end})
+	end
+end)
+
 local InfoSection = Tabs.Info:AddSection("Info")
 InfoSection:AddParagraph({ Title = "Info", Content = "Made by Tapetenputzer\nDiscord: tapetenputzer" })
 
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 SaveManager:IgnoreThemeSettings()
-SaveManager:SetIgnoreIndexes({})
+SaveManager:SetIgnoreIndexes({}) 
 InterfaceManager:SetFolder("FluentScriptHub_MicUp")
 SaveManager:SetFolder("FluentScriptHub_MicUp/configs")
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
