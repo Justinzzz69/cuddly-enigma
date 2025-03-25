@@ -7,7 +7,6 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local VoiceChatService = game:GetService("VoiceChatService")
-local VirtualUser = game:GetService("VirtualUser")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -342,42 +341,6 @@ nametagsSection:AddToggle("NametagsToggle", { Title = "enable nametag", Default 
 	end
 end)
 
-local TeleportSection = Tabs.Teleport:AddSection("Teleport Players")
-local function TeleportToPlayer(targetPlayer)
-	local localChar = LocalPlayer.Character
-	local targetChar = targetPlayer.Character
-	if localChar and targetChar then
-		local root = localChar:FindFirstChild("HumanoidRootPart")
-		local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
-		if root and targetRoot then
-			root.CFrame = targetRoot.CFrame
-		end
-	end
-end
-
-local function UpdateTeleportList(searchQuery)
-	if TeleportSection.ClearItems then
-		TeleportSection:ClearItems()
-	else
-		for _, child in ipairs(TeleportSection:GetChildren()) do
-			child:Destroy()
-		end
-	end
-	local searchBox = TeleportSection:AddTextbox("TeleportSearch", { Title = "Search Player", Default = searchQuery })
-	searchBox:OnChanged(function(newText)
-		UpdateTeleportList(newText)
-	end)
-	for _, plr in pairs(Players:GetPlayers()) do
-		if plr ~= LocalPlayer and string.find(string.lower(plr.Name), string.lower(searchQuery)) then
-			TeleportSection:AddButton({ Title = plr.Name, Callback = function()
-				TeleportToPlayer(plr)
-			end })
-		end
-	end
-end
-
-UpdateTeleportList("")
-
 local VoiceSection = Tabs.Voice:AddSection("Voice Chat")
 VoiceSection:AddButton({ Title = "Bypass Voiceban", Callback = function()
 	if VoiceChatService and VoiceChatService.joinVoice then
@@ -394,6 +357,27 @@ VoiceSection:AddButton({ Title = "Bypass Voiceban", Callback = function()
 	end
 end})
 
+local TeleportSection = Tabs.Teleport:AddSection("Teleport Players")
+local function TeleportToPlayer(targetPlayer)
+	local localChar = LocalPlayer.Character
+	local targetChar = targetPlayer.Character
+	if localChar and targetChar then
+		local root = localChar:FindFirstChild("HumanoidRootPart")
+		local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+		if root and targetRoot then
+			root.CFrame = targetRoot.CFrame
+		end
+	end
+end
+
+for _, plr in pairs(Players:GetPlayers()) do
+	if plr ~= LocalPlayer then
+		TeleportSection:AddButton({ Title = plr.Name, Callback = function()
+			TeleportToPlayer(plr)
+		end})
+	end
+end
+
 local InfoSection = Tabs.Info:AddSection("Info")
 InfoSection:AddParagraph({ Title = "Info", Content = "Made by Tapetenputzer\nDiscord: tapetenputzer" })
 
@@ -409,8 +393,3 @@ SaveManager:LoadAutoloadConfig()
 
 Fluent:Notify({ Title = "Voice Ban Bypasser", Content = "Script Loaded!", Duration = 5 })
 Window:SelectTab(1)
-
-LocalPlayer.Idled:Connect(function()
-	VirtualUser:CaptureController()
-	VirtualUser:ClickButton2(Vector2.new(0,0))
-end)
