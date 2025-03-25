@@ -22,7 +22,7 @@ local Window = Fluent:CreateWindow({
 
 local Tabs = {
 	Player   = Window:AddTab({ Title = "Player",   Icon = "user" }),
-	Chams    = Window:AddTab({ Title = "chams",    Icon = "eye" }),
+	Chams    = Window:AddTab({ Title = "Chams",    Icon = "eye" }),
 	Voice    = Window:AddTab({ Title = "Voice",    Icon = "mic" }),
 	Teleport = Window:AddTab({ Title = "Teleport", Icon = "map" }),
 	Info     = Window:AddTab({ Title = "Info",     Icon = "heart" }),
