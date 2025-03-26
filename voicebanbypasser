@@ -456,15 +456,20 @@ end)
 ---------------------------------------------------------------------
 local TeleportSection = Tabs.Teleport:AddSection("Teleport Players")
 
+-- Hilfsfunktion um den Root-Teil zu bekommen (für R15 und R6)
+local function getRootPart(character)
+	return character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
+end
+
 local function TeleportToPlayer(targetPlayer)
 	local localChar = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 	local targetChar = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
-	local root = localChar:WaitForChild("HumanoidRootPart", 5)
-	local targetRoot = targetChar:WaitForChild("HumanoidRootPart", 5)
+	local root = getRootPart(localChar)
+	local targetRoot = getRootPart(targetChar)
 	if root and targetRoot then
 		root.CFrame = targetRoot.CFrame
 	else
-		warn("Teleportation fehlgeschlagen, kein HumanoidRootPart gefunden.")
+		warn("Teleportation fehlgeschlagen, kein Root-Part gefunden.")
 	end
 end
 
