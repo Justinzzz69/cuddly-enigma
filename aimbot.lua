@@ -23,7 +23,7 @@ local Window = Fluent:CreateWindow({
 
 local Tabs = {
     Aimbot = Window:AddTab({ Title = "Aimbot", Icon = "target" }),
-    ESP = Window:AddTab({ Title = "ESP", Icon = "eye" }),
+    ESP    = Window:AddTab({ Title = "ESP",    Icon = "eye" }),
     Player = Window:AddTab({ Title = "Player", Icon = "user" }),
     Visual = Window:AddTab({ Title = "Visual", Icon = "sun" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
@@ -42,6 +42,9 @@ local AimParts = {
     Feet = "LeftFoot"
 }
 local CurrentAimPart = "Head"
+
+-- Wenn true, wird der Aimbot nur ausgeführt, wenn rechte Maustaste gedrückt ist
+local AimHotkeyMode = false
 
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Thickness = 1
@@ -102,6 +105,11 @@ local function EnableAimbot()
     if AimConnection then AimConnection:Disconnect() end
     AimConnection = RunService.RenderStepped:Connect(function()
         if AimEnabled then
+            -- Nur wenn AimHotkeyMode deaktiviert ist ODER wir RMB gedrückt halten
+            if AimHotkeyMode and not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+                return -- nicht zielen, weil rechte Maustaste nicht gedrückt
+            end
+
             local target = ClosestEnemy()
             if target and target.Character and target.Character:FindFirstChild(CurrentAimPart) then
                 local pos = target.Character[CurrentAimPart].Position
@@ -123,9 +131,8 @@ local function DisableAimbot()
 end
 
 --------------------------------------------------------------------------------
--- ESP: CHAMS, NAMETAGS & SKELETON ESP
+-- ESP: CHAMS & NAMETAGS
 --------------------------------------------------------------------------------
--- Chams & Nametags (bereits vorhanden)
 local ChamsActive = false
 local NametagsActive = false
 local EnemyColor = Color3.fromRGB(255, 0, 0)
@@ -155,7 +162,7 @@ end
 local function UpdateChams()
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
-            local col = (not AimTeamCheck or not IsTeammate(p)) and EnemyColor or TeamColor
+            local col = IsTeammate(p) and TeamColor or EnemyColor
             for _, part in pairs(p.Character:GetDescendants()) do
                 if part:IsA("BasePart") then
                     local cham = part:FindFirstChild("Cham")
@@ -189,7 +196,7 @@ local function UpdateNametags()
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
             local head = p.Character.Head
-            local col = (not AimTeamCheck or not IsTeammate(p)) and EnemyColor or TeamColor
+            local c = IsTeammate(p) and TeamColor or EnemyColor
             local ex = head:FindFirstChild("Nametag")
             if not ex then
                 local b = Instance.new("BillboardGui")
@@ -209,7 +216,7 @@ local function UpdateNametags()
                 lbl.Text = p.Name
                 lbl.TextScaled = true
                 lbl.Font = Enum.Font.GothamSemibold
-                lbl.TextColor3 = col
+                lbl.TextColor3 = c
                 lbl.TextStrokeTransparency = 0.3
                 b.Parent = head
             else
@@ -217,7 +224,7 @@ local function UpdateNametags()
                 if frm then
                     local lbl = frm:FindFirstChildOfClass("TextLabel")
                     if lbl then
-                        lbl.TextColor3 = col
+                        lbl.TextColor3 = c
                     end
                 end
             end
@@ -232,7 +239,9 @@ local function NametagsLoop()
     end
 end
 
--- Neuer Abschnitt: Skeleton ESP
+--------------------------------------------------------------------------------
+-- NEUER ABSCHNITT: SKELETON ESP
+--------------------------------------------------------------------------------
 local SkeletonConnections = {
     {"Head", "UpperTorso"},
     {"UpperTorso", "LeftUpperArm"},
@@ -250,8 +259,8 @@ local SkeletonConnections = {
     {"RightLowerLeg", "RightFoot"}
 }
 local skeletonESPEnabled = false
-local skeletonESPColor = Color3.new(1, 0, 0) -- Standard Rot
-local SkeletonESPs = {}  -- Tabelle: [player] = { drawing1, drawing2, ... }
+local skeletonESPColor = Color3.new(1, 0, 0)
+local SkeletonESPs = {}
 
 local function CreateSkeletonForPlayer(player)
     local drawings = {}
@@ -314,20 +323,263 @@ RunService.RenderStepped:Connect(function()
 end)
 
 --------------------------------------------------------------------------------
+-- FLY
+--------------------------------------------------------------------------------
+local flyActive = false
+local flySpeed = 50
+local flyBodyVelocity, flyBodyGyro, flyConnection
+
+local function enableFly()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local root = char.HumanoidRootPart
+        flyBodyVelocity = Instance.new("BodyVelocity", root)
+        flyBodyVelocity.Velocity = Vector3.new(0,0,0)
+        flyBodyVelocity.MaxForce = Vector3.new(1e5,1e5,1e5)
+
+        flyBodyGyro = Instance.new("BodyGyro", root)
+        flyBodyGyro.MaxTorque = Vector3.new(1e5,1e5,1e5)
+        flyBodyGyro.CFrame = root.CFrame
+
+        flyConnection = RunService.RenderStepped:Connect(function()
+            local dir = Vector3.new(0,0,0)
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                dir = dir + Workspace.CurrentCamera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                dir = dir - Workspace.CurrentCamera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                dir = dir - Workspace.CurrentCamera.CFrame.RightVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                dir = dir + Workspace.CurrentCamera.CFrame.RightVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                dir = dir + Vector3.new(0,1,0)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+                dir = dir - Vector3.new(0,1,0)
+            end
+
+            if dir.Magnitude > 0 then
+                flyBodyVelocity.Velocity = dir.Unit * flySpeed
+            else
+                flyBodyVelocity.Velocity = Vector3.new(0,0,0)
+            end
+            flyBodyGyro.CFrame = Workspace.CurrentCamera.CFrame
+        end)
+    end
+end
+
+local function disableFly()
+    if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
+    if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
+    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+end
+
+--------------------------------------------------------------------------------
+-- ANTI-AFK
+--------------------------------------------------------------------------------
+local antiAfkConnection
+local function enableAntiAfk()
+    if antiAfkConnection then return end
+    antiAfkConnection = LocalPlayer.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new(0,0))
+    end)
+end
+
+local function disableAntiAfk()
+    if antiAfkConnection then
+        antiAfkConnection:Disconnect()
+        antiAfkConnection = nil
+    end
+end
+
+--------------------------------------------------------------------------------
+-- AIMBOT TAB
+--------------------------------------------------------------------------------
+local AimSec = Tabs.Aimbot:AddSection("Aimbot")
+
+AimSec:AddToggle("AimbotToggle", {
+    Title = "Enabled",
+    Default = false,
+    Callback = function(s)
+        AimEnabled = s
+        if s then
+            EnableAimbot()
+        else
+            DisableAimbot()
+        end
+    end
+})
+
+-- Hotkey-Toggle: Nur zielen, wenn rechte Maustaste gedrückt
+AimSec:AddToggle("AimHotkey", {
+    Title = "Aim Hotkey (RMB)",
+    Default = false,
+    Callback = function(s)
+        AimHotkeyMode = s
+    end
+})
+
+AimSec:AddSlider("FOVSlider", {
+    Title = "FOV",
+    Default = 100,
+    Min = 10,
+    Max = 600,
+    Rounding = 0,
+    Callback = function(v)
+        AimFOV = v
+        FOVCircle.Radius = v
+    end
+})
+
+AimSec:AddSlider("SmoothSlider", {
+    Title = "Smooth",
+    Default = 0.1,
+    Min = 0,
+    Max = 1,
+    Rounding = 2,
+    Callback = function(v)
+        AimSmooth = v
+    end
+})
+
+AimSec:AddToggle("TeamCheck", {
+    Title = "TeamCheck",
+    Default = false,
+    Callback = function(s)
+        AimTeamCheck = s
+    end
+})
+
+AimSec:AddToggle("FOVCircle", {
+    Title = "Show FOV Circle",
+    Default = true,
+    Callback = function(s)
+        FOVCircle.Visible = s
+    end
+})
+
+AimSec:AddSlider("FOVThickness", {
+    Title = "FOV Thickness",
+    Default = 1,
+    Min = 1,
+    Max = 10,
+    Rounding = 0,
+    Callback = function(v)
+        FOVCircle.Thickness = v
+    end
+})
+
+AimSec:AddColorpicker("FOVColor", {
+    Title = "FOV Color",
+    Default = FOVCircle.Color,
+    Callback = function(col)
+        FOVCircle.Color = col
+    end
+})
+
+AimSec:AddDropdown("AimPartDropdown", {
+    Title = "Aim Part",
+    Values = {"Head", "Torso", "Feet"},
+    Multi = false,
+    Default = "Head",
+    Callback = function(val)
+        CurrentAimPart = AimParts[val]
+    end
+})
+
+--------------------------------------------------------------------------------
+-- ESP TAB
+--------------------------------------------------------------------------------
+local ESPChams = Tabs.ESP:AddSection("Chams")
+ESPChams:AddToggle("ChamsToggle", {
+    Title = "Chams",
+    Default = false,
+    Callback = function(s)
+        ChamsActive = s
+        if s then
+            task.spawn(ChamsLoop)
+        else
+            RemoveChams()
+        end
+    end
+})
+
+ESPChams:AddColorpicker("EnemyColor", {
+    Title = "Enemy",
+    Default = EnemyColor,
+    Callback = function(c)
+        EnemyColor = c
+    end
+})
+
+ESPChams:AddColorpicker("TeamColor", {
+    Title = "Team",
+    Default = TeamColor,
+    Callback = function(c)
+        TeamColor = c
+    end
+})
+
+local ESPName = Tabs.ESP:AddSection("Nametags")
+ESPName:AddToggle("NametagsToggle", {
+    Title = "Nametags",
+    Default = false,
+    Callback = function(s)
+        NametagsActive = s
+        if s then
+            task.spawn(NametagsLoop)
+        else
+            RemoveNametags()
+        end
+    end
+})
+
+-- Skeleton ESP Section
+local SkeletonESPSection = Tabs.ESP:AddSection("Skeleton ESP")
+SkeletonESPSection:AddToggle("SkeletonESPToggle", {
+    Title = "Skeleton ESP",
+    Default = false,
+    Callback = function(s)
+        skeletonESPEnabled = s
+        if not s then
+            for player, lines in pairs(SkeletonESPs) do
+                for _, line in ipairs(lines) do
+                    line:Remove()
+                end
+            end
+            SkeletonESPs = {}
+        end
+    end
+})
+
+SkeletonESPSection:AddColorpicker("SkeletonESPColor", {
+    Title = "Skeleton Color",
+    Default = skeletonESPColor,
+    Callback = function(c)
+        skeletonESPColor = c
+    end
+})
+
+--------------------------------------------------------------------------------
 -- PLAYER TAB
 --------------------------------------------------------------------------------
 local FlySec = Tabs.Player:AddSection("Fly")
-local FlyToggle = FlySec:AddToggle("FlyToggle", {
+FlySec:AddToggle("FlyToggle", {
     Title = "Fly",
-    Default = false
-})
-FlyToggle:OnChanged(function(s)
-    if s then
-        enableFly()
-    else
-        disableFly()
+    Default = false,
+    Callback = function(s)
+        if s then
+            enableFly()
+        else
+            disableFly()
+        end
     end
-end)
+})
 
 local FlySpeedInp = FlySec:AddInput("FlySpeed", {
     Title = "Fly Speed",
@@ -361,89 +613,89 @@ WalkSec:AddButton({
 })
 
 local AntiSec = Tabs.Player:AddSection("Anti-AFK")
-local AntiAFKToggle = AntiSec:AddToggle("AntiAFK", {
+AntiSec:AddToggle("AntiAFK", {
     Title = "Anti-AFK",
-    Default = false
-})
-AntiAFKToggle:OnChanged(function(s)
-    if s then
-        enableAntiAfk()
-    else
-        disableAntiAfk()
+    Default = false,
+    Callback = function(s)
+        if s then
+            enableAntiAfk()
+        else
+            disableAntiAfk()
+        end
     end
-end)
+})
 
 --------------------------------------------------------------------------------
 -- VISUAL TAB
 --------------------------------------------------------------------------------
 local VisualSec = Tabs.Visual:AddSection("Visual")
-local FB = VisualSec:AddToggle("Fullbright", {
+VisualSec:AddToggle("Fullbright", {
     Title = "Fullbright",
-    Default = false
-})
-FB:OnChanged(function(s)
-    if s then
-        Lighting.Brightness = 10
-        Lighting.ClockTime = 12
-        Lighting.FogEnd = 1e5
-        Lighting.GlobalShadows = false
-    else
-        Lighting.Brightness = 1
-        Lighting.ClockTime = 14
-        Lighting.FogEnd = 1000
-        Lighting.GlobalShadows = true
+    Default = false,
+    Callback = function(s)
+        if s then
+            Lighting.Brightness = 10
+            Lighting.ClockTime = 12
+            Lighting.FogEnd = 1e5
+            Lighting.GlobalShadows = false
+        else
+            Lighting.Brightness = 1
+            Lighting.ClockTime = 14
+            Lighting.FogEnd = 1000
+            Lighting.GlobalShadows = true
+        end
     end
-end)
+})
 
-local NF = VisualSec:AddToggle("NoFog", {
+VisualSec:AddToggle("NoFog", {
     Title = "No Fog",
-    Default = false
-})
-NF:OnChanged(function(s)
-    if s then
-        Lighting.FogStart = 0
-        Lighting.FogEnd = 1e9
-    else
-        Lighting.FogStart = 0
-        Lighting.FogEnd = 1000
+    Default = false,
+    Callback = function(s)
+        if s then
+            Lighting.FogStart = 0
+            Lighting.FogEnd = 1e9
+        else
+            Lighting.FogStart = 0
+            Lighting.FogEnd = 1000
+        end
     end
-end)
+})
 
-local CC = VisualSec:AddToggle("ColorCorrection", {
+VisualSec:AddToggle("ColorCorrection", {
     Title = "Color Correction",
-    Default = false
-})
-CC:OnChanged(function(s)
-    if s then
-        if not Lighting:FindFirstChild("ColorCorrectionEffect") then
-            local c = Instance.new("ColorCorrectionEffect")
-            c.Brightness = 0
-            c.Contrast = 0
-            c.Saturation = 1
-            c.Parent = Lighting
+    Default = false,
+    Callback = function(s)
+        if s then
+            if not Lighting:FindFirstChild("ColorCorrectionEffect") then
+                local c = Instance.new("ColorCorrectionEffect")
+                c.Brightness = 0
+                c.Contrast = 0
+                c.Saturation = 1
+                c.Parent = Lighting
+            end
+        else
+            local c = Lighting:FindFirstChild("ColorCorrectionEffect")
+            if c then c:Destroy() end
         end
-    else
-        local c = Lighting:FindFirstChild("ColorCorrectionEffect")
-        if c then c:Destroy() end
     end
-end)
+})
 
-local SR = VisualSec:AddToggle("SunRays", {
+VisualSec:AddToggle("SunRays", {
     Title = "SunRays",
-    Default = false
-})
-SR:OnChanged(function(s)
-    if s then
-        if not Lighting:FindFirstChild("SunRaysEffect") then
-            local sr = Instance.new("SunRaysEffect")
-            sr.Intensity = 0.3
-            sr.Parent = Lighting
+    Default = false,
+    Callback = function(s)
+        if s then
+            if not Lighting:FindFirstChild("SunRaysEffect") then
+                local sr = Instance.new("SunRaysEffect")
+                sr.Intensity = 0.3
+                sr.Parent = Lighting
+            end
+        else
+            local sr = Lighting:FindFirstChild("SunRaysEffect")
+            if sr then sr:Destroy() end
         end
-    else
-        local sr = Lighting:FindFirstChild("SunRaysEffect")
-        if sr then sr:Destroy() end
     end
-end)
+})
 
 --------------------------------------------------------------------------------
 -- SETTINGS TAB
