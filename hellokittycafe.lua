@@ -1,0 +1,415 @@
+---------------------------------------------------------------------
+-- Libraries laden
+---------------------------------------------------------------------
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+---------------------------------------------------------------------
+-- Services
+---------------------------------------------------------------------
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local LocalPlayer = Players.LocalPlayer
+
+---------------------------------------------------------------------
+-- Haupt-GUI erstellen (Menü: Hello kitty)
+---------------------------------------------------------------------
+local Window = Fluent:CreateWindow({
+	Title = "Hello kitty",
+	SubTitle = "",
+	TabWidth = 160,
+	Size = UDim2.fromOffset(580, 460),
+	Acrylic = true,
+	Theme = "Dark",
+	MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+local Tabs = {
+	Player   = Window:AddTab({ Title = "Player",   Icon = "user" }),
+	Teleport = Window:AddTab({ Title = "Teleport", Icon = "map" }),
+	Info     = Window:AddTab({ Title = "Info",     Icon = "heart" }),
+	Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+}
+
+---------------------------------------------------------------------
+-- PLAYER-FUNKTIONEN
+---------------------------------------------------------------------
+local currentSpeed = 16
+local flySpeed = 50
+local flyConnection, flyBodyVelocity, flyBodyGyro
+
+local function setWalkSpeed(speed)
+	local char = LocalPlayer.Character
+	if char and char:FindFirstChild("Humanoid") then
+		char.Humanoid.WalkSpeed = speed
+	end
+end
+
+local function enableFly()
+	local char = LocalPlayer.Character
+	if char and char:FindFirstChild("HumanoidRootPart") then
+		local root = char.HumanoidRootPart
+		flyBodyVelocity = Instance.new("BodyVelocity", root)
+		flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+		flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+		flyBodyGyro = Instance.new("BodyGyro", root)
+		flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+		flyBodyGyro.CFrame = root.CFrame
+
+		flyConnection = RunService.RenderStepped:Connect(function()
+			local dir = Vector3.new(0, 0, 0)
+			if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+				dir = dir + Workspace.CurrentCamera.CFrame.LookVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+				dir = dir - Workspace.CurrentCamera.CFrame.LookVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+				dir = dir - Workspace.CurrentCamera.CFrame.RightVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+				dir = dir + Workspace.CurrentCamera.CFrame.RightVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+				dir = dir + Vector3.new(0,1,0)
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+				dir = dir - Vector3.new(0,1,0)
+			end
+
+			if dir.Magnitude > 0 then
+				flyBodyVelocity.Velocity = dir.Unit * flySpeed
+			else
+				flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+			end
+			flyBodyGyro.CFrame = Workspace.CurrentCamera.CFrame
+		end)
+	end
+end
+
+local function disableFly()
+	if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
+	if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
+	if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+end
+
+local AFKConnection
+local function EnableAntiAFK()
+	if AFKConnection then
+		AFKConnection:Disconnect()
+		AFKConnection = nil
+	end
+	AFKConnection = LocalPlayer.Idled:Connect(function()
+		game:GetService("VirtualUser"):CaptureController()
+		game:GetService("VirtualUser"):ClickButton2(Vector2.new())
+	end)
+end
+
+local function DisableAntiAFK()
+	if AFKConnection then
+		AFKConnection:Disconnect()
+		AFKConnection = nil
+	end
+end
+
+---------------------------------------------------------------------
+-- PLAYER-TAB: Movement
+---------------------------------------------------------------------
+local PlayerSection = Tabs.Player:AddSection("Movement")
+
+PlayerSection:AddSlider("SpeedSlider", {
+	Title = "Walk Speed",
+	Default = 16,
+	Min = 0,
+	Max = 100,
+	Rounding = 0
+}):OnChanged(function(value)
+	currentSpeed = value
+	setWalkSpeed(currentSpeed)
+end)
+
+PlayerSection:AddToggle("FlyToggle", { Title = "Fly", Default = false })
+:OnChanged(function(state)
+	if state then
+		enableFly()
+	else
+		disableFly()
+	end
+end)
+
+PlayerSection:AddSlider("FlySpeedSlider", {
+	Title = "Fly Speed",
+	Default = 50,
+	Min = 0,
+	Max = 300,
+	Rounding = 0
+}):OnChanged(function(value)
+	flySpeed = value
+end)
+
+local AntiAFKSection = Tabs.Player:AddSection("Anti AFK")
+AntiAFKSection:AddToggle("AntiAFKToggle", { Title = "Anti AFK", Default = false })
+:OnChanged(function(state)
+	if state then
+		EnableAntiAFK()
+	else
+		DisableAntiAFK()
+	end
+end)
+
+---------------------------------------------------------------------
+-- AUTO-FUNKTIONEN
+---------------------------------------------------------------------
+local function pressF()
+	VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+	task.wait(0.05)
+	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+end
+
+local function anchorCharacter(state)
+	local char = LocalPlayer.Character
+	if char and char:FindFirstChild("HumanoidRootPart") then
+		char.HumanoidRootPart.Anchored = state
+	end
+end
+
+-- Helper: Überspringe Objekte in "SceneModels"
+local function IsInFolder(obj, folderName)
+	local current = obj.Parent
+	while current do
+		if current.Name == folderName then
+			return true
+		end
+		current = current.Parent
+	end
+	return false
+end
+
+-- Feste Einstellungen für Auto Serve: Immer 10-mal F drücken, Teleport-Intervall fest auf 0,5 Sekunden
+local fPressCount = 10
+local serveInterval = 0.5
+
+---------------------------------------------------------------------
+-- 1) Auto Serve (nur neue InteractionEntities, die noch nicht verarbeitet wurden)
+---------------------------------------------------------------------
+local processedInteractions = {}
+
+local function AutoServeOnce()
+	local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+	local defaultOffset = Vector3.new(0, 1, 0)
+	
+	-- Durchlaufe alle InteractionEntity-Objekte
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if string.find(obj.Name, "InteractionEntity") and obj:IsA("BasePart") then
+			-- Nur verarbeiten, wenn noch nicht verarbeitet und nicht in "SceneModels"
+			if not processedInteractions[obj] and not IsInFolder(obj, "SceneModels") then
+				local teleportOffset = defaultOffset
+				if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
+					teleportOffset = Vector3.new(0, 5, 0)
+				end
+				hrp.CFrame = obj.CFrame + teleportOffset
+				task.wait(0.5)
+				-- Drücke F 10-mal
+				for i = 1, fPressCount do
+					pressF()
+					task.wait(0.1)
+				end
+				-- Markiere das Objekt als verarbeitet
+				processedInteractions[obj] = true
+				task.wait(1)
+			end
+		end
+	end
+end
+
+local autoServeActive = false
+local autoServeTask
+
+local function AutoServeLoop()
+	-- Beim Aktivieren: Alle bestehenden InteractionEntities als verarbeitet markieren
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if string.find(obj.Name, "InteractionEntity") and obj:IsA("BasePart") then
+			processedInteractions[obj] = true
+		end
+	end
+	while autoServeActive do
+		AutoServeOnce()
+		task.wait(serveInterval)
+	end
+end
+
+---------------------------------------------------------------------
+-- 2) Auto Treasure Cheast
+---------------------------------------------------------------------
+local function AutoTreasureCheastOnce()
+	local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+	local teleportOffset = Vector3.new(0, 3, 0)
+
+	for _, entity in ipairs(workspace:GetDescendants()) do
+		if entity.Name == "TreasureEntity" and (entity:IsA("Model") or entity:IsA("Folder")) then
+			local parts = {}
+			for _, child in ipairs(entity:GetDescendants()) do
+				if child:IsA("BasePart") then
+					table.insert(parts, child)
+				end
+			end
+
+			for _, part in ipairs(parts) do
+				hrp.CFrame = part.CFrame + teleportOffset
+				task.wait(0.5)
+				anchorCharacter(true)
+				pressF()
+				task.wait(3)
+				anchorCharacter(false)
+			end
+		end
+	end
+end
+
+local treasureLoopActive = false
+local treasureLoopTask
+
+local function TreasureCheastLoop()
+	while treasureLoopActive do
+		AutoTreasureCheastOnce()
+		task.wait(5)
+	end
+end
+
+---------------------------------------------------------------------
+-- 3) Auto Upgrade (SB GuangQuan, Parent = PlayerCafe)
+---------------------------------------------------------------------
+local function AutoUpgradeOnce()
+	local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+	local upgradeOffset = Vector3.new(0, 2, 0)
+
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj.Name == "SB GuangQuan" and obj.Parent and obj.Parent.Name == "PlayerCafe" then
+			if obj:IsA("BasePart") then
+				hrp.CFrame = obj.CFrame + upgradeOffset
+				task.wait(1)
+			elseif obj:IsA("Model") then
+				local primary = obj.PrimaryPart
+				if primary then
+					hrp.CFrame = primary.CFrame + upgradeOffset
+					task.wait(1)
+				end
+			end
+		end
+	end
+end
+
+local upgradeLoopActive = false
+local upgradeLoopTask
+
+local function AutoUpgradeLoop()
+	while upgradeLoopActive do
+		AutoUpgradeOnce()
+		task.wait(1)
+	end
+end
+
+---------------------------------------------------------------------
+-- UGC Items
+---------------------------------------------------------------------
+local function GetUGCItems()
+	ReplicatedStorage.GameCommon.Messages.BuyUGCItem:FireServer(14526608964)
+	ReplicatedStorage.GameCommon.Messages.BuyUGCItem:FireServer(15290834415)
+	ReplicatedStorage.GameCommon.Messages.BuyUGCItem:FireServer(15014829602)
+end
+
+---------------------------------------------------------------------
+-- TELEPORT-TAB: AUTO-FUNKTIONEN und UGC-Button
+---------------------------------------------------------------------
+local UGCSection = Tabs.Teleport:AddSection("Get UGC Items")
+UGCSection:AddButton({
+	Title = "Get UGC Items",
+	Callback = function()
+		GetUGCItems()
+	end
+})
+
+local AutoSection = Tabs.Teleport:AddSection("Auto Farm Entities")
+
+AutoSection:AddToggle("ServeToggle", { Title = "Auto Serve", Default = false })
+:OnChanged(function(state)
+	autoServeActive = state
+	if state then
+		-- Leere processedInteractions, damit nur neue Objekte verarbeitet werden
+		processedInteractions = {}
+		autoServeTask = task.spawn(AutoServeLoop)
+	else
+		if autoServeTask then
+			task.cancel(autoServeTask)
+			autoServeTask = nil
+		end
+	end
+end)
+
+AutoSection:AddToggle("TreasureToggle", { Title = "Auto Treasure Cheast", Default = false })
+:OnChanged(function(state)
+	treasureLoopActive = state
+	if state then
+		treasureLoopTask = task.spawn(TreasureCheastLoop)
+	else
+		if treasureLoopTask then
+			task.cancel(treasureLoopTask)
+			treasureLoopTask = nil
+		end
+	end
+end)
+
+AutoSection:AddToggle("UpgradeToggle", { Title = "Auto Upgrade", Default = false })
+:OnChanged(function(state)
+	upgradeLoopActive = state
+	if state then
+		upgradeLoopTask = task.spawn(AutoUpgradeLoop)
+	else
+		if upgradeLoopTask then
+			task.cancel(upgradeLoopTask)
+			upgradeLoopTask = nil
+		end
+	end
+end)
+
+---------------------------------------------------------------------
+-- INFO-TAB
+---------------------------------------------------------------------
+local InfoSection = Tabs.Info:AddSection("Info")
+InfoSection:AddParagraph({
+	Title = "Info",
+	Content = "Erstellt von Tapetenputzer\nDiscord: tapetenputzer"
+})
+
+---------------------------------------------------------------------
+-- SETTINGS-TAB
+---------------------------------------------------------------------
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+InterfaceManager:SetFolder("FluentScriptHub_MicUp")
+SaveManager:SetFolder("FluentScriptHub_MicUp/configs")
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
+SaveManager:LoadAutoloadConfig()
+
+---------------------------------------------------------------------
+-- FINALE NOTIFICATION
+---------------------------------------------------------------------
+Fluent:Notify({
+	Title = "Hello kitty",
+	Content = "Script Loaded!",
+	Duration = 5
+})
+
+Window:SelectTab(1)
