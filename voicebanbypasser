@@ -10,17 +10,32 @@ local VoiceChatService = game:GetService("VoiceChatService")
 
 local LocalPlayer = Players.LocalPlayer
 
+-- Neu: Hilfsfunktion, um Charakter wieder beweglich zu machen
+local function reEnableMovement()
+	local char = LocalPlayer.Character
+	if char then
+		local root = char:FindFirstChild("HumanoidRootPart")
+		local hum = char:FindFirstChild("Humanoid")
+		if root then
+			root.Anchored = false
+		end
+		if hum then
+			hum.PlatformStand = false
+		end
+	end
+end
+
+-- Wichtig: Acrylic = false, um Blur zu vermeiden
 local Window = Fluent:CreateWindow({
 	Title = "Voice Ban Bypasser",
 	SubTitle = "",
 	TabWidth = 160,
 	Size = UDim2.fromOffset(580, 460),
-	Acrylic = true,
+	Acrylic = false, -- statt true
 	Theme = "Dark",
 	MinimizeKey = Enum.KeyCode.LeftControl
 })
 
--- Tabs
 local Tabs = {
 	Player   = Window:AddTab({ Title = "Player",   Icon = "user" }),
 	Chams    = Window:AddTab({ Title = "Chams",    Icon = "eye" }),
@@ -150,7 +165,6 @@ end
 ---------------------------------------------------------------------
 -- Skeleton ESP (Drawing API)
 ---------------------------------------------------------------------
--- Definiere die Gelenkverbindungen (für R15)
 local SkeletonConnections = {
 	{"Head", "UpperTorso"},
 	{"UpperTorso", "LeftUpperArm"},
@@ -169,8 +183,8 @@ local SkeletonConnections = {
 }
 
 local skeletonESPEnabled = false
-local skeletonESPColor = Color3.new(1, 0, 0) -- Standard: Rot
-local SkeletonESPs = {} -- Tabelle: [player] = { drawing1, drawing2, ... }
+local skeletonESPColor = Color3.new(1, 0, 0)
+local SkeletonESPs = {}
 
 local function CreateSkeletonForPlayer(player)
 	local drawings = {}
@@ -368,12 +382,11 @@ chamsSection:AddColorpicker("ChamsColor", { Title = "chams color", Default = cha
 		chamsColor = c
 	end)
 
--- Skeleton ESP Toggle und Skeleton Colorpicker (nun richtig benannt)
+-- Skeleton ESP
 chamsSection:AddToggle("SkeletonESPToggle", { Title = "Skeleton ESP", Default = false })
 	:OnChanged(function(state)
 		skeletonESPEnabled = state
 		if not state then
-			-- Entferne alle Skeleton-Zeichnungen
 			for player, lines in pairs(SkeletonESPs) do
 				for _, line in ipairs(lines) do
 					line:Remove()
@@ -476,6 +489,22 @@ nametagsSection:AddToggle("NametagsToggle", { Title = "enable nametag", Default 
 ---------------------------------------------------------------------
 local VoiceSection = Tabs.Voice:AddSection("Voice Chat")
 
+-- NEU: reEnableMovement-Funktion
+local function reEnableMovement()
+	local char = LocalPlayer.Character
+	if char then
+		local root = char:FindFirstChild("HumanoidRootPart")
+		local hum = char:FindFirstChild("Humanoid")
+		if root then
+			root.Anchored = false
+		end
+		if hum then
+			hum.PlatformStand = false
+			hum.Sit = false
+		end
+	end
+end
+
 VoiceSection:AddButton({
 	Title = "Bypass Voiceban",
 	Callback = function()
@@ -487,6 +516,8 @@ VoiceSection:AddButton({
 				warn("Voice join failed: " .. err)
 			else
 				print("Attempted to join voice.")
+				-- Neu: Ent-Ankern / Movement wieder ermöglichen
+				reEnableMovement()
 			end
 		else
 			warn("VoiceChatService oder joinVoice() nicht verfügbar.")
@@ -519,6 +550,8 @@ local function autoVoiceJoinLoop()
 				end)
 				if success then
 					print("Auto Voice Join: Versuch, Voicechat beizutreten.")
+					-- Falls Movement blockiert sein sollte:
+					reEnableMovement()
 				else
 					warn("Auto Voice Join fehlgeschlagen: " .. err)
 				end
@@ -571,7 +604,6 @@ end)
 ---------------------------------------------------------------------
 local SpectateSection = Tabs.Spectate:AddSection("Spectate Players")
 
--- Stop Spectate-Button (ganz oben einfügen)
 SpectateSection:AddButton({
 	Title = "Stop Spectate",
 	Callback = function()
