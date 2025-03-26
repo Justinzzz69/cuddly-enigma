@@ -150,7 +150,7 @@ end
 ---------------------------------------------------------------------
 -- Skeleton ESP (Drawing API)
 ---------------------------------------------------------------------
--- Definiere die Gelenkverbindungen (für R15-Rigs)
+-- Definiere die Gelenkverbindungen (für R15)
 local SkeletonConnections = {
 	{"Head", "UpperTorso"},
 	{"UpperTorso", "LeftUpperArm"},
@@ -368,8 +368,8 @@ chamsSection:AddColorpicker("ChamsColor", { Title = "chams color", Default = cha
 		chamsColor = c
 	end)
 
--- Skeleton ESP Toggle und ESP Colorpicker
-chamsSection:AddToggle("SkeletonESPToggle", { Title = "ESP", Default = false })
+-- Skeleton ESP Toggle und Skeleton Colorpicker (nun richtig benannt)
+chamsSection:AddToggle("SkeletonESPToggle", { Title = "Skeleton ESP", Default = false })
 	:OnChanged(function(state)
 		skeletonESPEnabled = state
 		if not state then
@@ -383,7 +383,7 @@ chamsSection:AddToggle("SkeletonESPToggle", { Title = "ESP", Default = false })
 		end
 	end)
 
-chamsSection:AddColorpicker("SkeletonESPColor", { Title = "ESP Color", Default = skeletonESPColor })
+chamsSection:AddColorpicker("SkeletonESPColor", { Title = "Skeleton Color", Default = skeletonESPColor })
 	:OnChanged(function(c)
 		skeletonESPColor = c
 	end)
