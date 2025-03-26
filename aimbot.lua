@@ -123,8 +123,9 @@ local function DisableAimbot()
 end
 
 --------------------------------------------------------------------------------
--- ESP: CHAMS & NAMETAGS
+-- ESP: CHAMS, NAMETAGS & SKELETON ESP
 --------------------------------------------------------------------------------
+-- Chams & Nametags (bereits vorhanden)
 local ChamsActive = false
 local NametagsActive = false
 local EnemyColor = Color3.fromRGB(255, 0, 0)
@@ -154,7 +155,7 @@ end
 local function UpdateChams()
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
-            local col = IsTeammate(p) and TeamColor or EnemyColor
+            local col = (not AimTeamCheck or not IsTeammate(p)) and EnemyColor or TeamColor
             for _, part in pairs(p.Character:GetDescendants()) do
                 if part:IsA("BasePart") then
                     local cham = part:FindFirstChild("Cham")
@@ -188,7 +189,7 @@ local function UpdateNametags()
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
             local head = p.Character.Head
-            local c = IsTeammate(p) and TeamColor or EnemyColor
+            local col = (not AimTeamCheck or not IsTeammate(p)) and EnemyColor or TeamColor
             local ex = head:FindFirstChild("Nametag")
             if not ex then
                 local b = Instance.new("BillboardGui")
@@ -208,7 +209,7 @@ local function UpdateNametags()
                 lbl.Text = p.Name
                 lbl.TextScaled = true
                 lbl.Font = Enum.Font.GothamSemibold
-                lbl.TextColor3 = c
+                lbl.TextColor3 = col
                 lbl.TextStrokeTransparency = 0.3
                 b.Parent = head
             else
@@ -216,7 +217,7 @@ local function UpdateNametags()
                 if frm then
                     local lbl = frm:FindFirstChildOfClass("TextLabel")
                     if lbl then
-                        lbl.TextColor3 = c
+                        lbl.TextColor3 = col
                     end
                 end
             end
@@ -231,209 +232,84 @@ local function NametagsLoop()
     end
 end
 
---------------------------------------------------------------------------------
--- FLY
---------------------------------------------------------------------------------
-local flyActive = false
-local flySpeed = 50
-local flyBodyVelocity, flyBodyGyro, flyConnection
+-- Neuer Abschnitt: Skeleton ESP
+local SkeletonConnections = {
+    {"Head", "UpperTorso"},
+    {"UpperTorso", "LeftUpperArm"},
+    {"LeftUpperArm", "LeftLowerArm"},
+    {"LeftLowerArm", "LeftHand"},
+    {"UpperTorso", "RightUpperArm"},
+    {"RightUpperArm", "RightLowerArm"},
+    {"RightLowerArm", "RightHand"},
+    {"UpperTorso", "LowerTorso"},
+    {"LowerTorso", "LeftUpperLeg"},
+    {"LeftUpperLeg", "LeftLowerLeg"},
+    {"LeftLowerLeg", "LeftFoot"},
+    {"LowerTorso", "RightUpperLeg"},
+    {"RightUpperLeg", "RightLowerLeg"},
+    {"RightLowerLeg", "RightFoot"}
+}
+local skeletonESPEnabled = false
+local skeletonESPColor = Color3.new(1, 0, 0) -- Standard Rot
+local SkeletonESPs = {}  -- Tabelle: [player] = { drawing1, drawing2, ... }
 
-local function enableFly()
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        local root = char.HumanoidRootPart
-        flyBodyVelocity = Instance.new("BodyVelocity", root)
-        flyBodyVelocity.Velocity = Vector3.new(0,0,0)
-        flyBodyVelocity.MaxForce = Vector3.new(1e5,1e5,1e5)
+local function CreateSkeletonForPlayer(player)
+    local drawings = {}
+    for i, connection in ipairs(SkeletonConnections) do
+        local line = Drawing.new("Line")
+        line.Visible = true
+        line.Transparency = 1
+        line.Color = skeletonESPColor
+        line.Thickness = 2
+        drawings[i] = line
+    end
+    SkeletonESPs[player] = drawings
+end
 
-        flyBodyGyro = Instance.new("BodyGyro", root)
-        flyBodyGyro.MaxTorque = Vector3.new(1e5,1e5,1e5)
-        flyBodyGyro.CFrame = root.CFrame
-
-        flyConnection = RunService.RenderStepped:Connect(function()
-            local dir = Vector3.new(0,0,0)
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                dir = dir + Workspace.CurrentCamera.CFrame.LookVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                dir = dir - Workspace.CurrentCamera.CFrame.LookVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                dir = dir - Workspace.CurrentCamera.CFrame.RightVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                dir = dir + Workspace.CurrentCamera.CFrame.RightVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                dir = dir + Vector3.new(0,1,0)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-                dir = dir - Vector3.new(0,1,0)
-            end
-
-            if dir.Magnitude > 0 then
-                flyBodyVelocity.Velocity = dir.Unit * flySpeed
+local function UpdateSkeletonESP(player)
+    if not SkeletonESPs[player] then
+        CreateSkeletonForPlayer(player)
+    end
+    local drawings = SkeletonESPs[player]
+    local character = player.Character
+    if character then
+        for i, connection in ipairs(SkeletonConnections) do
+            local partA = character:FindFirstChild(connection[1])
+            local partB = character:FindFirstChild(connection[2])
+            if partA and partB then
+                local vectorA, onScreenA = Workspace.CurrentCamera:WorldToViewportPoint(partA.Position)
+                local vectorB, onScreenB = Workspace.CurrentCamera:WorldToViewportPoint(partB.Position)
+                if onScreenA and onScreenB then
+                    drawings[i].Visible = true
+                    drawings[i].From = Vector2.new(vectorA.X, vectorA.Y)
+                    drawings[i].To = Vector2.new(vectorB.X, vectorB.Y)
+                    drawings[i].Color = skeletonESPColor
+                else
+                    drawings[i].Visible = false
+                end
             else
-                flyBodyVelocity.Velocity = Vector3.new(0,0,0)
+                drawings[i].Visible = false
             end
-            flyBodyGyro.CFrame = Workspace.CurrentCamera.CFrame
-        end)
-    end
-end
-
-local function disableFly()
-    if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
-    if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
-    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
-end
-
---------------------------------------------------------------------------------
--- ANTI-AFK
---------------------------------------------------------------------------------
-local antiAfkConnection
-local function enableAntiAfk()
-    if antiAfkConnection then return end
-    antiAfkConnection = LocalPlayer.Idled:Connect(function()
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new(0,0))
-    end)
-end
-
-local function disableAntiAfk()
-    if antiAfkConnection then
-        antiAfkConnection:Disconnect()
-        antiAfkConnection = nil
-    end
-end
-
---------------------------------------------------------------------------------
--- AIMBOT TAB
---------------------------------------------------------------------------------
-local AimSec = Tabs.Aimbot:AddSection("Aimbot")
-local AimToggle = AimSec:AddToggle("AimbotToggle", {
-    Title = "Enabled",
-    Default = false,
-    Callback = function(s)
-        AimEnabled = s
-        if s then
-            EnableAimbot()
-        else
-            DisableAimbot()
         end
     end
-})
-local FOVSlider = AimSec:AddSlider("FOVSlider", {
-    Title = "FOV",
-    Default = 100,
-    Min = 10,
-    Max = 600,
-    Rounding = 0,
-})
-FOVSlider:OnChanged(function(v)
-    AimFOV = v
-    FOVCircle.Radius = v
-end)
+end
 
-local SmoothSlider = AimSec:AddSlider("SmoothSlider", {
-    Title = "Smooth",
-    Default = 0.1,
-    Min = 0,
-    Max = 1,
-    Rounding = 2,
-})
-SmoothSlider:OnChanged(function(v)
-    AimSmooth = v
-end)
-
-local TeamCheckToggle = AimSec:AddToggle("TeamCheck", {
-    Title = "TeamCheck",
-    Default = false
-})
-TeamCheckToggle:OnChanged(function(s)
-    AimTeamCheck = s
-end)
-
-local FOVCircleToggle = AimSec:AddToggle("FOVCircle", {
-    Title = "Show FOV Circle",
-    Default = true
-})
-FOVCircleToggle:OnChanged(function(s)
-    FOVCircle.Visible = s
-end)
-
-local FOVThickness = AimSec:AddSlider("FOVThickness", {
-    Title = "FOV Thickness",
-    Default = 1,
-    Min = 1,
-    Max = 10,
-    Rounding = 0
-})
-FOVThickness:OnChanged(function(v)
-    FOVCircle.Thickness = v
-end)
-
-local FOVColor = AimSec:AddColorpicker("FOVColor", {
-    Title = "FOV Color",
-    Default = FOVCircle.Color
-})
-FOVColor:OnChanged(function(col)
-    FOVCircle.Color = col
-end)
-
-local AimPartDropdown = AimSec:AddDropdown("AimPartDropdown", {
-    Title = "Aim Part",
-    Values = {"Head", "Torso", "Feet"},
-    Multi = false,
-    Default = "Head"
-})
-AimPartDropdown:OnChanged(function(val)
-    CurrentAimPart = AimParts[val]
-end)
-
---------------------------------------------------------------------------------
--- ESP TAB
---------------------------------------------------------------------------------
-local ESPChams = Tabs.ESP:AddSection("Chams")
-local ChamsToggle = ESPChams:AddToggle("ChamsToggle", {
-    Title = "Chams",
-    Default = false
-})
-ChamsToggle:OnChanged(function(s)
-    ChamsActive = s
-    if s then
-        task.spawn(ChamsLoop)
-    else
-        RemoveChams()
+Players.PlayerRemoving:Connect(function(player)
+    if SkeletonESPs[player] then
+        for _, line in ipairs(SkeletonESPs[player]) do
+            line:Remove()
+        end
+        SkeletonESPs[player] = nil
     end
 end)
 
-local EnemyCol = ESPChams:AddColorpicker("EnemyColor", {
-    Title = "Enemy",
-    Default = EnemyColor
-})
-EnemyCol:OnChanged(function(c)
-    EnemyColor = c
-end)
-
-local TeamCol = ESPChams:AddColorpicker("TeamColor", {
-    Title = "Team",
-    Default = TeamColor
-})
-TeamCol:OnChanged(function(c)
-    TeamColor = c
-end)
-
-local ESPName = Tabs.ESP:AddSection("Nametags")
-local NametagsToggle = ESPName:AddToggle("NametagsToggle", {
-    Title = "Nametags",
-    Default = false
-})
-NametagsToggle:OnChanged(function(s)
-    NametagsActive = s
-    if s then
-        task.spawn(NametagsLoop)
-    else
-        RemoveNametags()
+RunService.RenderStepped:Connect(function()
+    if skeletonESPEnabled then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                UpdateSkeletonESP(player)
+            end
+        end
     end
 end)
 
@@ -570,7 +446,7 @@ SR:OnChanged(function(s)
 end)
 
 --------------------------------------------------------------------------------
--- SETTINGS
+-- SETTINGS TAB
 --------------------------------------------------------------------------------
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
