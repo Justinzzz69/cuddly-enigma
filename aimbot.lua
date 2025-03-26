@@ -11,26 +11,8 @@ local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 
-local Window = Fluent:CreateWindow({
-    Title = "Big Paintball",
-    SubTitle = "made by Tapetenputzer",
-    TabWidth = 160,
-    Size = UDim2.fromOffset(580, 460),
-    Acrylic = true,
-    Theme = "Dark",
-    MinimizeKey = Enum.KeyCode.LeftControl
-})
-
-local Tabs = {
-    Aimbot = Window:AddTab({ Title = "Aimbot", Icon = "target" }),
-    ESP    = Window:AddTab({ Title = "ESP",    Icon = "eye" }),
-    Player = Window:AddTab({ Title = "Player", Icon = "user" }),
-    Visual = Window:AddTab({ Title = "Visual", Icon = "sun" }),
-    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
-}
-
 --------------------------------------------------------------------------------
--- AIMBOT
+-- Hilfsvariablen für den Aimbot
 --------------------------------------------------------------------------------
 local AimEnabled = false
 local AimFOV = 100
@@ -42,10 +24,11 @@ local AimParts = {
     Feet = "LeftFoot"
 }
 local CurrentAimPart = "Head"
+local AimHotkeyMode = false  -- Aimbot nur bei gedrückter RMB
 
--- Wenn true, wird der Aimbot nur ausgeführt, wenn rechte Maustaste gedrückt ist
-local AimHotkeyMode = false
-
+--------------------------------------------------------------------------------
+-- FOV Circle
+--------------------------------------------------------------------------------
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Thickness = 1
 FOVCircle.Radius = AimFOV
@@ -59,9 +42,12 @@ FOVCircle.Position = Vector2.new(
 
 RunService.RenderStepped:Connect(function()
     local cam = Workspace.CurrentCamera
-    FOVCircle.Position = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)
+    FOVCircle.Position = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
 end)
 
+--------------------------------------------------------------------------------
+-- Aimbot-Funktionen
+--------------------------------------------------------------------------------
 local function IsTeammate(p)
     return p.Team == LocalPlayer.Team
 end
@@ -74,8 +60,8 @@ end
 
 local function DistFromCenter(pt)
     local c = Vector2.new(
-        Workspace.CurrentCamera.ViewportSize.X/2,
-        Workspace.CurrentCamera.ViewportSize.Y/2
+        Workspace.CurrentCamera.ViewportSize.X / 2,
+        Workspace.CurrentCamera.ViewportSize.Y / 2
     )
     return (pt - c).Magnitude
 end
@@ -105,11 +91,9 @@ local function EnableAimbot()
     if AimConnection then AimConnection:Disconnect() end
     AimConnection = RunService.RenderStepped:Connect(function()
         if AimEnabled then
-            -- Nur wenn AimHotkeyMode deaktiviert ist ODER wir RMB gedrückt halten
             if AimHotkeyMode and not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-                return -- nicht zielen, weil rechte Maustaste nicht gedrückt
+                return
             end
-
             local target = ClosestEnemy()
             if target and target.Character and target.Character:FindFirstChild(CurrentAimPart) then
                 local pos = target.Character[CurrentAimPart].Position
@@ -131,7 +115,7 @@ local function DisableAimbot()
 end
 
 --------------------------------------------------------------------------------
--- ESP: CHAMS & NAMETAGS
+-- ESP-Funktionen (Chams, Nametags) + Skeleton
 --------------------------------------------------------------------------------
 local ChamsActive = false
 local NametagsActive = false
@@ -154,7 +138,9 @@ local function RemoveNametags()
     for _, p in pairs(Players:GetPlayers()) do
         if p.Character and p.Character:FindFirstChild("Head") then
             local tag = p.Character.Head:FindFirstChild("Nametag")
-            if tag then tag:Destroy() end
+            if tag then
+                tag:Destroy()
+            end
         end
     end
 end
@@ -240,7 +226,7 @@ local function NametagsLoop()
 end
 
 --------------------------------------------------------------------------------
--- NEUER ABSCHNITT: SKELETON ESP
+-- Skeleton ESP
 --------------------------------------------------------------------------------
 local SkeletonConnections = {
     {"Head", "UpperTorso"},
@@ -323,7 +309,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 --------------------------------------------------------------------------------
--- FLY
+-- Fly
 --------------------------------------------------------------------------------
 local flyActive = false
 local flySpeed = 50
@@ -379,7 +365,7 @@ local function disableFly()
 end
 
 --------------------------------------------------------------------------------
--- ANTI-AFK
+-- Anti-AFK
 --------------------------------------------------------------------------------
 local antiAfkConnection
 local function enableAntiAfk()
@@ -398,7 +384,28 @@ local function disableAntiAfk()
 end
 
 --------------------------------------------------------------------------------
--- AIMBOT TAB
+-- UI-Fenster erstellen
+--------------------------------------------------------------------------------
+local Window = Fluent:CreateWindow({
+    Title = "Big Paintball",
+    SubTitle = "made by Tapetenputzer",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = false, -- Kein Blur
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+local Tabs = {
+    Aimbot = Window:AddTab({ Title = "Aimbot", Icon = "target" }),
+    ESP    = Window:AddTab({ Title = "ESP",    Icon = "eye" }),
+    Player = Window:AddTab({ Title = "Player", Icon = "user" }),
+    Visual = Window:AddTab({ Title = "Visual", Icon = "sun" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+}
+
+--------------------------------------------------------------------------------
+-- Aimbot-Tab
 --------------------------------------------------------------------------------
 local AimSec = Tabs.Aimbot:AddSection("Aimbot")
 
@@ -415,7 +422,6 @@ AimSec:AddToggle("AimbotToggle", {
     end
 })
 
--- Hotkey-Toggle: Nur zielen, wenn rechte Maustaste gedrückt
 AimSec:AddToggle("AimHotkey", {
     Title = "Aim Hotkey (RMB)",
     Default = false,
@@ -492,10 +498,24 @@ AimSec:AddDropdown("AimPartDropdown", {
     end
 })
 
+-- Neu: Aimbot Max Distance
+local AimMaxDistance = 9999  -- default sehr hoch
+AimSec:AddSlider("AimDistanceSlider", {
+    Title = "Aim Distance",
+    Default = 9999,
+    Min = 1,
+    Max = 3000,
+    Rounding = 0,
+    Callback = function(v)
+        AimMaxDistance = v
+    end
+})
+
 --------------------------------------------------------------------------------
--- ESP TAB
+-- ESP-Tab
 --------------------------------------------------------------------------------
 local ESPChams = Tabs.ESP:AddSection("Chams")
+
 ESPChams:AddToggle("ChamsToggle", {
     Title = "Chams",
     Default = false,
@@ -526,6 +546,7 @@ ESPChams:AddColorpicker("TeamColor", {
 })
 
 local ESPName = Tabs.ESP:AddSection("Nametags")
+
 ESPName:AddToggle("NametagsToggle", {
     Title = "Nametags",
     Default = false,
@@ -539,7 +560,7 @@ ESPName:AddToggle("NametagsToggle", {
     end
 })
 
--- Skeleton ESP Section
+-- Skeleton ESP
 local SkeletonESPSection = Tabs.ESP:AddSection("Skeleton ESP")
 SkeletonESPSection:AddToggle("SkeletonESPToggle", {
     Title = "Skeleton ESP",
@@ -566,7 +587,7 @@ SkeletonESPSection:AddColorpicker("SkeletonESPColor", {
 })
 
 --------------------------------------------------------------------------------
--- PLAYER TAB
+-- PLAYER-Tab
 --------------------------------------------------------------------------------
 local FlySec = Tabs.Player:AddSection("Fly")
 FlySec:AddToggle("FlyToggle", {
@@ -629,6 +650,7 @@ AntiSec:AddToggle("AntiAFK", {
 -- VISUAL TAB
 --------------------------------------------------------------------------------
 local VisualSec = Tabs.Visual:AddSection("Visual")
+
 VisualSec:AddToggle("Fullbright", {
     Title = "Fullbright",
     Default = false,
@@ -717,3 +739,5 @@ Fluent:Notify({
 })
 
 Window:SelectTab(1)
+
+
