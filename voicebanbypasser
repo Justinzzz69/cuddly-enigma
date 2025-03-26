@@ -39,7 +39,6 @@ local flyBodyVelocity, flyBodyGyro, flyConnection
 -- Hilfsfunktionen
 ---------------------------------------------------------------------
 local function getRootPart(character)
-	-- Versucht HumanoidRootPart (R15) oder Torso (R6) zu finden
 	local root = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
 	if not root then
 		local success
@@ -147,6 +146,91 @@ local function StopSpectating()
 		end
 	end
 end
+
+---------------------------------------------------------------------
+-- Skeleton ESP (Drawing API)
+---------------------------------------------------------------------
+-- Definiere die Gelenkverbindungen (für R15-Rigs)
+local SkeletonConnections = {
+	{"Head", "UpperTorso"},
+	{"UpperTorso", "LeftUpperArm"},
+	{"LeftUpperArm", "LeftLowerArm"},
+	{"LeftLowerArm", "LeftHand"},
+	{"UpperTorso", "RightUpperArm"},
+	{"RightUpperArm", "RightLowerArm"},
+	{"RightLowerArm", "RightHand"},
+	{"UpperTorso", "LowerTorso"},
+	{"LowerTorso", "LeftUpperLeg"},
+	{"LeftUpperLeg", "LeftLowerLeg"},
+	{"LeftLowerLeg", "LeftFoot"},
+	{"LowerTorso", "RightUpperLeg"},
+	{"RightUpperLeg", "RightLowerLeg"},
+	{"RightLowerLeg", "RightFoot"}
+}
+
+local skeletonESPEnabled = false
+local skeletonESPColor = Color3.new(1, 0, 0) -- Standard: Rot
+local SkeletonESPs = {} -- Tabelle: [player] = { drawing1, drawing2, ... }
+
+local function CreateSkeletonForPlayer(player)
+	local drawings = {}
+	for i, connection in ipairs(SkeletonConnections) do
+		local line = Drawing.new("Line")
+		line.Visible = true
+		line.Transparency = 1
+		line.Color = skeletonESPColor
+		line.Thickness = 2
+		drawings[i] = line
+	end
+	SkeletonESPs[player] = drawings
+end
+
+local function UpdateSkeletonESP(player)
+	if not SkeletonESPs[player] then
+		CreateSkeletonForPlayer(player)
+	end
+	local drawings = SkeletonESPs[player]
+	local character = player.Character
+	if character then
+		for i, connection in ipairs(SkeletonConnections) do
+			local partA = character:FindFirstChild(connection[1])
+			local partB = character:FindFirstChild(connection[2])
+			if partA and partB then
+				local vectorA, onScreenA = Workspace.CurrentCamera:WorldToViewportPoint(partA.Position)
+				local vectorB, onScreenB = Workspace.CurrentCamera:WorldToViewportPoint(partB.Position)
+				if onScreenA and onScreenB then
+					drawings[i].Visible = true
+					drawings[i].From = Vector2.new(vectorA.X, vectorA.Y)
+					drawings[i].To = Vector2.new(vectorB.X, vectorB.Y)
+					drawings[i].Color = skeletonESPColor
+				else
+					drawings[i].Visible = false
+				end
+			else
+				drawings[i].Visible = false
+			end
+		end
+	end
+end
+
+Players.PlayerRemoving:Connect(function(player)
+	if SkeletonESPs[player] then
+		for _, line in ipairs(SkeletonESPs[player]) do
+			line:Remove()
+		end
+		SkeletonESPs[player] = nil
+	end
+end)
+
+RunService.RenderStepped:Connect(function()
+	if skeletonESPEnabled then
+		for _, player in pairs(Players:GetPlayers()) do
+			if player ~= LocalPlayer and player.Character then
+				UpdateSkeletonESP(player)
+			end
+		end
+	end
+end)
 
 ---------------------------------------------------------------------
 -- Tab: Player
@@ -282,6 +366,26 @@ chamsSection:AddToggle("ChamsToggle", { Title = "chams", Default = false })
 chamsSection:AddColorpicker("ChamsColor", { Title = "chams color", Default = chamsColor })
 	:OnChanged(function(c)
 		chamsColor = c
+	end)
+
+-- Skeleton ESP Toggle und ESP Colorpicker
+chamsSection:AddToggle("SkeletonESPToggle", { Title = "ESP", Default = false })
+	:OnChanged(function(state)
+		skeletonESPEnabled = state
+		if not state then
+			-- Entferne alle Skeleton-Zeichnungen
+			for player, lines in pairs(SkeletonESPs) do
+				for _, line in ipairs(lines) do
+					line:Remove()
+				end
+			end
+			SkeletonESPs = {}
+		end
+	end)
+
+chamsSection:AddColorpicker("SkeletonESPColor", { Title = "ESP Color", Default = skeletonESPColor })
+	:OnChanged(function(c)
+		skeletonESPColor = c
 	end)
 
 ---------------------------------------------------------------------
@@ -440,7 +544,6 @@ VoiceSection:AddToggle("AutoVoiceJoinToggle", { Title = "Auto Voice Join (experi
 ---------------------------------------------------------------------
 local TeleportSection = Tabs.Teleport:AddSection("Teleport Players")
 
--- Buttons für bestehende Spieler
 for _, plr in pairs(Players:GetPlayers()) do
 	if plr ~= LocalPlayer then
 		TeleportSection:AddButton({
@@ -476,7 +579,6 @@ SpectateSection:AddButton({
 	end
 })
 
--- Danach: Buttons für bestehende Spieler
 for _, plr in pairs(Players:GetPlayers()) do
 	if plr ~= LocalPlayer then
 		SpectateSection:AddButton({
