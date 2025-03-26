@@ -10,7 +10,7 @@ local VoiceChatService = game:GetService("VoiceChatService")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Neu: Hilfsfunktion, um Charakter wieder beweglich zu machen
+-- Hilfsfunktion, um Movement wieder zu aktivieren (entankern, PlatformStand deaktivieren)
 local function reEnableMovement()
 	local char = LocalPlayer.Character
 	if char then
@@ -21,17 +21,18 @@ local function reEnableMovement()
 		end
 		if hum then
 			hum.PlatformStand = false
+			hum.Sit = false
 		end
 	end
 end
 
--- Wichtig: Acrylic = false, um Blur zu vermeiden
+-- Acrylic false, damit kein Blur erzeugt wird
 local Window = Fluent:CreateWindow({
 	Title = "Voice Ban Bypasser",
 	SubTitle = "",
 	TabWidth = 160,
 	Size = UDim2.fromOffset(580, 460),
-	Acrylic = false, -- statt true
+	Acrylic = false,
 	Theme = "Dark",
 	MinimizeKey = Enum.KeyCode.LeftControl
 })
@@ -121,7 +122,7 @@ local function disableFly()
 end
 
 ---------------------------------------------------------------------
--- Teleport-Funktion
+-- Teleport-Funktion (wartet auf vollständigen Character)
 ---------------------------------------------------------------------
 local function TeleportToPlayer(targetPlayer)
 	local localChar = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -136,7 +137,7 @@ local function TeleportToPlayer(targetPlayer)
 end
 
 ---------------------------------------------------------------------
--- Spectate-Funktionen
+-- Spectate-Funktionen (wartet auf vollständigen Character)
 ---------------------------------------------------------------------
 local function SpectatePlayer(targetPlayer)
 	local targetChar = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
@@ -151,14 +152,13 @@ local function SpectatePlayer(targetPlayer)
 end
 
 local function StopSpectating()
-	local char = LocalPlayer.Character
-	if char then
-		local humanoid = char:FindFirstChild("Humanoid")
-		if humanoid then
-			Workspace.CurrentCamera.CameraSubject = humanoid
-			Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
-			print("Spectating beendet.")
-		end
+	local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	local humanoid = char:FindFirstChild("Humanoid")
+	if humanoid then
+		Workspace.CurrentCamera.CameraSubject = humanoid
+		Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+		print("Spectating beendet.")
+		reEnableMovement()
 	end
 end
 
@@ -382,7 +382,7 @@ chamsSection:AddColorpicker("ChamsColor", { Title = "chams color", Default = cha
 		chamsColor = c
 	end)
 
--- Skeleton ESP
+-- Skeleton ESP Toggle und Skeleton Colorpicker
 chamsSection:AddToggle("SkeletonESPToggle", { Title = "Skeleton ESP", Default = false })
 	:OnChanged(function(state)
 		skeletonESPEnabled = state
@@ -489,22 +489,6 @@ nametagsSection:AddToggle("NametagsToggle", { Title = "enable nametag", Default 
 ---------------------------------------------------------------------
 local VoiceSection = Tabs.Voice:AddSection("Voice Chat")
 
--- NEU: reEnableMovement-Funktion
-local function reEnableMovement()
-	local char = LocalPlayer.Character
-	if char then
-		local root = char:FindFirstChild("HumanoidRootPart")
-		local hum = char:FindFirstChild("Humanoid")
-		if root then
-			root.Anchored = false
-		end
-		if hum then
-			hum.PlatformStand = false
-			hum.Sit = false
-		end
-	end
-end
-
 VoiceSection:AddButton({
 	Title = "Bypass Voiceban",
 	Callback = function()
@@ -516,7 +500,6 @@ VoiceSection:AddButton({
 				warn("Voice join failed: " .. err)
 			else
 				print("Attempted to join voice.")
-				-- Neu: Ent-Ankern / Movement wieder ermöglichen
 				reEnableMovement()
 			end
 		else
@@ -550,7 +533,6 @@ local function autoVoiceJoinLoop()
 				end)
 				if success then
 					print("Auto Voice Join: Versuch, Voicechat beizutreten.")
-					-- Falls Movement blockiert sein sollte:
 					reEnableMovement()
 				else
 					warn("Auto Voice Join fehlgeschlagen: " .. err)
