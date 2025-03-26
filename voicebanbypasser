@@ -40,7 +40,6 @@ local flyBodyVelocity, flyBodyGyro, flyConnection
 ---------------------------------------------------------------------
 local function getRootPart(character)
 	-- Versucht HumanoidRootPart (R15) oder Torso (R6) zu finden
-	-- Wartet bis zu 5 Sekunden, falls es noch nicht existiert
 	local root = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
 	if not root then
 		local success
@@ -112,13 +111,7 @@ end
 ---------------------------------------------------------------------
 local function TeleportToPlayer(targetPlayer)
 	local localChar = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-
-	-- Warten, bis das Ziel einen Character hat
-	local targetChar = targetPlayer.Character
-	if not targetChar then
-		targetChar = targetPlayer.CharacterAdded:Wait()
-	end
-
+	local targetChar = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
 	local root = getRootPart(localChar)
 	local targetRoot = getRootPart(targetChar)
 	if root and targetRoot then
@@ -379,20 +372,23 @@ nametagsSection:AddToggle("NametagsToggle", { Title = "enable nametag", Default 
 ---------------------------------------------------------------------
 local VoiceSection = Tabs.Voice:AddSection("Voice Chat")
 
-VoiceSection:AddButton({ Title = "Bypass Voiceban", Callback = function()
-	if VoiceChatService and VoiceChatService.joinVoice then
-		local success, err = pcall(function()
-			VoiceChatService:joinVoice()
-		end)
-		if not success then
-			warn("Voice join failed: " .. err)
+VoiceSection:AddButton({
+	Title = "Bypass Voiceban",
+	Callback = function()
+		if VoiceChatService and VoiceChatService.joinVoice then
+			local success, err = pcall(function()
+				VoiceChatService:joinVoice()
+			end)
+			if not success then
+				warn("Voice join failed: " .. err)
+			else
+				print("Attempted to join voice.")
+			end
 		else
-			print("Attempted to join voice.")
+			warn("VoiceChatService oder joinVoice() nicht verfügbar.")
 		end
-	else
-		warn("VoiceChatService oder joinVoice() nicht verfügbar.")
 	end
-end})
+})
 
 local function isVoiceConnected()
 	if not VoiceChatService then 
@@ -456,7 +452,6 @@ for _, plr in pairs(Players:GetPlayers()) do
 	end
 end
 
--- Neue Spieler -> Button hinzufügen
 Players.PlayerAdded:Connect(function(plr)
 	if plr ~= LocalPlayer then
 		TeleportSection:AddButton({
@@ -469,11 +464,11 @@ Players.PlayerAdded:Connect(function(plr)
 end)
 
 ---------------------------------------------------------------------
--- Neuer Tab: Spectate
+-- Tab: Spectate
 ---------------------------------------------------------------------
 local SpectateSection = Tabs.Spectate:AddSection("Spectate Players")
 
--- Zuerst: Stop-Button hinzufügen, damit er garantiert sichtbar ist
+-- Stop Spectate-Button (ganz oben einfügen)
 SpectateSection:AddButton({
 	Title = "Stop Spectate",
 	Callback = function()
@@ -493,7 +488,6 @@ for _, plr in pairs(Players:GetPlayers()) do
 	end
 end
 
--- Neue Spieler -> Button hinzufügen
 Players.PlayerAdded:Connect(function(plr)
 	if plr ~= LocalPlayer then
 		SpectateSection:AddButton({
