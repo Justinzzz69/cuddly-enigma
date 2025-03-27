@@ -58,6 +58,7 @@ local function enableFly()
 		flyBodyVelocity = Instance.new("BodyVelocity", root)
 		flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
 		flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+
 		flyBodyGyro = Instance.new("BodyGyro", root)
 		flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
 		flyBodyGyro.CFrame = root.CFrame
@@ -167,9 +168,9 @@ end)
 -- AUTO-FUNKTIONEN
 ---------------------------------------------------------------------
 local function pressF()
-	VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+	game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.F, false, game)
 	task.wait(0.05)
-	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+	game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.F, false, game)
 end
 
 local function anchorCharacter(state)
@@ -179,7 +180,6 @@ local function anchorCharacter(state)
 	end
 end
 
--- Helper: Überspringe Objekte in "SceneModels"
 local function IsInFolder(obj, folderName)
 	local current = obj.Parent
 	while current do
@@ -191,12 +191,11 @@ local function IsInFolder(obj, folderName)
 	return false
 end
 
--- Feste Einstellungen für Auto Serve: Immer 10-mal F drücken, Teleport-Intervall fest auf 0,5 Sekunden
 local fPressCount = 10
 local serveInterval = 0.5
 
 ---------------------------------------------------------------------
--- 1) Auto Serve (nur neue InteractionEntities, die noch nicht verarbeitet wurden)
+-- 1) Auto Serve
 ---------------------------------------------------------------------
 local processedInteractions = {}
 
@@ -205,10 +204,8 @@ local function AutoServeOnce()
 	local hrp = char:WaitForChild("HumanoidRootPart")
 	local defaultOffset = Vector3.new(0, 1, 0)
 	
-	-- Durchlaufe alle InteractionEntity-Objekte
 	for _, obj in ipairs(workspace:GetDescendants()) do
 		if string.find(obj.Name, "InteractionEntity") and obj:IsA("BasePart") then
-			-- Nur verarbeiten, wenn noch nicht verarbeitet und nicht in "SceneModels"
 			if not processedInteractions[obj] and not IsInFolder(obj, "SceneModels") then
 				local teleportOffset = defaultOffset
 				if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
@@ -216,12 +213,10 @@ local function AutoServeOnce()
 				end
 				hrp.CFrame = obj.CFrame + teleportOffset
 				task.wait(0.5)
-				-- Drücke F 10-mal
 				for i = 1, fPressCount do
 					pressF()
 					task.wait(0.1)
 				end
-				-- Markiere das Objekt als verarbeitet
 				processedInteractions[obj] = true
 				task.wait(1)
 			end
@@ -242,6 +237,25 @@ local function AutoServeLoop()
 	while autoServeActive do
 		AutoServeOnce()
 		task.wait(serveInterval)
+	end
+end
+
+-- **NEU**: Alle 10 Minuten intern neu starten
+local autoServeResetTask
+local function autoServeResetLoop()
+	while autoServeActive do
+		-- 10 Minuten warten
+		task.wait(600) 
+		if not autoServeActive then break end
+		-- "Intern" neu starten: beende kurz den Loop
+		if autoServeTask then
+			task.cancel(autoServeTask)
+			autoServeTask = nil
+		end
+		-- processedInteractions leeren
+		processedInteractions = {}
+		-- Dann Loop neu starten
+		autoServeTask = task.spawn(AutoServeLoop)
 	end
 end
 
@@ -285,7 +299,7 @@ local function TreasureCheastLoop()
 end
 
 ---------------------------------------------------------------------
--- 3) Auto Upgrade (SB GuangQuan, Parent = PlayerCafe)
+-- 3) Auto Upgrade
 ---------------------------------------------------------------------
 local function AutoUpgradeOnce()
 	local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -344,13 +358,21 @@ AutoSection:AddToggle("ServeToggle", { Title = "Auto Serve", Default = false })
 :OnChanged(function(state)
 	autoServeActive = state
 	if state then
-		-- Leere processedInteractions, damit nur neue Objekte verarbeitet werden
 		processedInteractions = {}
+		-- Starte AutoServe
 		autoServeTask = task.spawn(AutoServeLoop)
+		-- Starte Reset-Loop
+		autoServeResetTask = task.spawn(autoServeResetLoop)
 	else
+		-- Stoppe AutoServe
 		if autoServeTask then
 			task.cancel(autoServeTask)
 			autoServeTask = nil
+		end
+		-- Stoppe Reset-Loop
+		if autoServeResetTask then
+			task.cancel(autoServeResetTask)
+			autoServeResetTask = nil
 		end
 	end
 end)
