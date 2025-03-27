@@ -253,7 +253,7 @@ local autoServeResetTask
 local function autoServeResetLoop()
     while autoServeActive do
         -- 4 Minuten warten
-        task.wait(240)
+        task.wait(300)
         if not autoServeActive then break end
         -- Loop neu starten:
         if autoServeTask then
