@@ -235,10 +235,10 @@ AutoSection:AddToggle("UpgradeToggle", {
 -- TELEPORT-TAB: Neue Rubrik "KeroPPI Dash"
 ---------------------------------------------------------------------
 -- Hier fügen wir drei Buttons hinzu, die dich zu festen Koordinaten teleportieren.
--- Jeder Button startet einen Countdown von 47 Sekunden, der in der Konsole ausgegeben wird,
+-- Jeder Button startet einen Countdown von 40 Sekunden, der in der Konsole ausgegeben wird,
 -- und teleportiert dich dann zur vorgegebenen Koordinate.
 local function dashToCoordinate(coord)
-    for i = 47, 1, -1 do
+    for i = 40, 1, -1 do
         print("Teleport in " .. i .. " Sekunden...")
         task.wait(1)
     end
