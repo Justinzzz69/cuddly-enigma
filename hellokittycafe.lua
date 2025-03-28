@@ -1,13 +1,7 @@
----------------------------------------------------------------------
--- Libraries laden
----------------------------------------------------------------------
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
----------------------------------------------------------------------
--- Services
----------------------------------------------------------------------
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -17,29 +11,23 @@ local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 
----------------------------------------------------------------------
--- Haupt-GUI erstellen (Hello kitty)
----------------------------------------------------------------------
 local Window = Fluent:CreateWindow({
     Title = "Hello kitty",
     SubTitle = "",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
-    Acrylic = true,  -- Blur-Effekt, falls gewünscht
+    Acrylic = true,
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.LeftControl
 })
 
 local Tabs = {
-    Player   = Window:AddTab({ Title = "Player",   Icon = "user" }),
+    Player = Window:AddTab({ Title = "Player", Icon = "user" }),
     Teleport = Window:AddTab({ Title = "Teleport", Icon = "map" }),
-    Info     = Window:AddTab({ Title = "Info",     Icon = "heart" }),
+    Info = Window:AddTab({ Title = "Info", Icon = "heart" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
 
----------------------------------------------------------------------
--- PLAYER-FUNKTIONEN
----------------------------------------------------------------------
 local currentSpeed = 16
 local flySpeed = 50
 local flyConnection, flyBodyVelocity, flyBodyGyro
@@ -116,9 +104,6 @@ local function DisableAntiAFK()
     end
 end
 
----------------------------------------------------------------------
--- PLAYER-TAB: Movement
----------------------------------------------------------------------
 local PlayerSection = Tabs.Player:AddSection("Movement")
 PlayerSection:AddSlider("SpeedSlider", {
     Title = "Walk Speed",
@@ -165,81 +150,75 @@ AntiAFKSection:AddToggle("AntiAFKToggle", {
     end
 })
 
----------------------------------------------------------------------
--- TELEPORT-TAB: Bestehende Funktionen (UGC, Auto Farm Entities)
----------------------------------------------------------------------
-local UGCSection = Tabs.Teleport:AddSection("Get UGC Items")
-UGCSection:AddButton({
-    Title = "Get UGC Items",
-    Callback = function()
-        ReplicatedStorage.GameCommon.Messages.BuyUGCItem:FireServer(14526608964)
-        ReplicatedStorage.GameCommon.Messages.BuyUGCItem:FireServer(15290834415)
-        ReplicatedStorage.GameCommon.Messages.BuyUGCItem:FireServer(15014829602)
+local yOffset = 3
+local scanInterval = 1
+
+local function getHRP(character)
+    return character:WaitForChild("HumanoidRootPart")
+end
+
+local function collectMoney()
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hrp = getHRP(character)
+    local nearestMoney
+    local nearestDist = math.huge
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name:lower():find("money") then
+            local dist = (obj.Position - hrp.Position).Magnitude
+            if dist < nearestDist then
+                nearestDist = dist
+                nearestMoney = obj
+            end
+        end
+    end
+    if nearestMoney then
+        hrp.CFrame = nearestMoney.CFrame + Vector3.new(0, yOffset, 0)
+        print("Teleporting to money, Dist: " .. nearestDist)
+        task.wait(0.2)
+        local footPos = hrp.Position - Vector3.new(0, 3, 0)
+        local screenPos, onScreen = Workspace.CurrentCamera:WorldToViewportPoint(footPos)
+        if onScreen then
+            VirtualInputManager:SendMouseButtonEvent(screenPos.X, screenPos.Y, 0, true, game, 0)
+            task.wait(0.1)
+            VirtualInputManager:SendMouseButtonEvent(screenPos.X, screenPos.Y, 0, false, game, 0)
+            print("Simulated left click at (" .. screenPos.X .. ", " .. screenPos.Y .. ")")
+        else
+            print("Position under player not on screen.")
+        end
+    else
+        print("No money object found.")
+    end
+end
+
+local autoCollectActive = false
+local autoCollectTask
+local function autoCollectLoop()
+    while autoCollectActive do
+        collectMoney()
+        task.wait(scanInterval)
+    end
+end
+
+local TeleportSection = Tabs.Teleport:AddSection("Auto Collect Money")
+TeleportSection:AddToggle("AutoCollectMoneyToggle", {
+    Title = "Auto Collect Money",
+    Default = false,
+    Callback = function(state)
+        autoCollectActive = state
+        if state then
+            autoCollectTask = task.spawn(autoCollectLoop)
+        else
+            if autoCollectTask then
+                task.cancel(autoCollectTask)
+                autoCollectTask = nil
+            end
+        end
     end
 })
 
-local AutoSection = Tabs.Teleport:AddSection("Auto Farm Entities")
-AutoSection:AddToggle("ServeToggle", {
-    Title = "Auto Serve",
-    Default = false,
-    Callback = function(state)
-        autoServeActive = state
-        if state then
-            processedInteractions = {}
-            autoServeTask = task.spawn(AutoServeLoop)
-            autoServeResetTask = task.spawn(autoServeResetLoop)
-        else
-            if autoServeTask then
-                task.cancel(autoServeTask)
-                autoServeTask = nil
-            end
-            if autoServeResetTask then
-                task.cancel(autoServeResetTask)
-                autoServeResetTask = nil
-            end
-        end
-    end
-})
-AutoSection:AddToggle("TreasureToggle", {
-    Title = "Auto Treasure Cheast",
-    Default = false,
-    Callback = function(state)
-        treasureLoopActive = state
-        if state then
-            treasureLoopTask = task.spawn(TreasureCheastLoop)
-        else
-            if treasureLoopTask then
-                task.cancel(treasureLoopTask)
-                treasureLoopTask = nil
-            end
-        end
-    end
-})
-AutoSection:AddToggle("UpgradeToggle", {
-    Title = "Auto Upgrade",
-    Default = false,
-    Callback = function(state)
-        upgradeLoopActive = state
-        if state then
-            upgradeLoopTask = task.spawn(AutoUpgradeLoop)
-        else
-            if upgradeLoopTask then
-                task.cancel(upgradeLoopTask)
-                upgradeLoopTask = nil
-            end
-        end
-    end
-})
-
----------------------------------------------------------------------
--- TELEPORT-TAB: Neue Rubrik "KeroPPI Dash"
----------------------------------------------------------------------
--- Hier fügen wir drei Buttons hinzu, die dich zu festen Koordinaten teleportieren.
--- Jeder Button startet einen Countdown von 40 Sekunden, der in der Konsole ausgegeben wird,
--- und teleportiert dich dann zur vorgegebenen Koordinate.
 local function dashToCoordinate(coord)
-    for i = 40, 1, -1 do
-        print("Teleport in " .. i .. " Sekunden...")
+    for i = 47, 1, -1 do
+        print("Teleport in " .. i .. " seconds...")
         task.wait(1)
     end
     local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -268,18 +247,12 @@ KeroPPIDashSection:AddButton({
     end
 })
 
----------------------------------------------------------------------
--- INFO-TAB
----------------------------------------------------------------------
 local InfoSection = Tabs.Info:AddSection("Info")
 InfoSection:AddParagraph({
     Title = "Info",
-    Content = "Erstellt von Tapetenputzer\nDiscord: tapetenputzer"
+    Content = "Created by Tapetenputzer\nDiscord: tapetenputzer"
 })
 
----------------------------------------------------------------------
--- SETTINGS-TAB (wie im ursprünglichen Script)
----------------------------------------------------------------------
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 SaveManager:IgnoreThemeSettings()
@@ -290,9 +263,6 @@ InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 SaveManager:LoadAutoloadConfig()
 
----------------------------------------------------------------------
--- FINALE NOTIFICATION
----------------------------------------------------------------------
 Fluent:Notify({
     Title = "Hello kitty",
     Content = "Script Loaded!",
