@@ -227,7 +227,7 @@ local function dashToCoordinate(coord)
     print("Teleported to coordinate: " .. tostring(coord))
 end
 
-local KeroPPIDashSection = Tabs.Teleport:AddSection("KeroPPI Dash")
+local KeroPPIDashSection = Tabs.Teleport:AddSection("keroppi Dash")
 KeroPPIDashSection:AddButton({
     Title = "Dizzy Frenzy",
     Callback = function()
