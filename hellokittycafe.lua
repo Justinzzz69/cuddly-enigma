@@ -415,6 +415,40 @@ AutoSection:AddToggle("UpgradeToggle", {
 })
 
 ---------------------------------------------------------------------
+-- TELEPORT-TAB: KeroPPI Dash
+---------------------------------------------------------------------
+local function dashToCoordinate(coord)
+    for i = 47, 1, -1 do
+        print("Teleport in " .. i .. " seconds...")
+        task.wait(1)
+    end
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hrp = character:WaitForChild("HumanoidRootPart")
+    hrp.CFrame = CFrame.new(coord)
+    print("Teleported to coordinate: " .. tostring(coord))
+end
+
+local KeroPPIDashSection = Tabs.Teleport:AddSection("KeroPPI Dash")
+KeroPPIDashSection:AddButton({
+    Title = "Dizzy Frenzy",
+    Callback = function()
+        dashToCoordinate(Vector3.new(1965.16, 219.93, 197.30))
+    end
+})
+KeroPPIDashSection:AddButton({
+    Title = "Rumble Stumble",
+    Callback = function()
+        dashToCoordinate(Vector3.new(-409.05, 231.95, 1758.00))
+    end
+})
+KeroPPIDashSection:AddButton({
+    Title = "Jungle Dash",
+    Callback = function()
+        dashToCoordinate(Vector3.new(-2145.95, 173.22, 120.95))
+    end
+})
+
+---------------------------------------------------------------------
 -- INFO-TAB
 ---------------------------------------------------------------------
 local InfoSection = Tabs.Info:AddSection("Info")
