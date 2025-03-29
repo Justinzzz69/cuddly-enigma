@@ -199,7 +199,7 @@ local function IsInFolder(obj, folderName)
     return false
 end
 
-local fPressCount = 5
+local fPressCount = 4
 local serveInterval = 0.1
 
 ---------------------------------------------------------------------
