@@ -199,8 +199,8 @@ local function IsInFolder(obj, folderName)
     return false
 end
 
-local fPressCount = 10
-local serveInterval = 0.5
+local fPressCount = 5
+local serveInterval = 0.1
 
 ---------------------------------------------------------------------
 -- 1) Auto Serve
@@ -271,7 +271,7 @@ end
 local function AutoTreasureCheastOnce()
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local hrp = char:WaitForChild("HumanoidRootPart")
-    local teleportOffset = Vector3.new(0, 3, 0)
+    local teleportOffset = Vector3.new(0, 1, 0)  -- Offset reduziert von 3 auf 1
 
     for _, entity in ipairs(workspace:GetDescendants()) do
         if entity.Name == "TreasureEntity" and (entity:IsA("Model") or entity:IsA("Folder")) then
@@ -287,7 +287,7 @@ local function AutoTreasureCheastOnce()
                 task.wait(0.5)
                 anchorCharacter(true)
                 pressF()
-                task.wait(3)
+                task.wait(1)  -- Wartezeit reduziert von 3 auf 1 Sekunde
                 anchorCharacter(false)
             end
         end
