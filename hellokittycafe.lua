@@ -56,15 +56,15 @@ local function enableFly()
     if char and char:FindFirstChild("HumanoidRootPart") then
         local root = char.HumanoidRootPart
         flyBodyVelocity = Instance.new("BodyVelocity", root)
-        flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+        flyBodyVelocity.Velocity = Vector.new(0, 0, 0)
+        flyBodyVelocity.MaxForce = Vector.new(1e5, 1e5, 1e5)
 
         flyBodyGyro = Instance.new("BodyGyro", root)
-        flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+        flyBodyGyro.MaxTorque = Vector.new(1e5, 1e5, 1e5)
         flyBodyGyro.CFrame = root.CFrame
 
         flyConnection = RunService.RenderStepped:Connect(function()
-            local dir = Vector3.new(0, 0, 0)
+            local dir = Vector.new(0, 0, 0)
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then
                 dir = dir + Workspace.CurrentCamera.CFrame.LookVector
             end
@@ -78,16 +78,16 @@ local function enableFly()
                 dir = dir + Workspace.CurrentCamera.CFrame.RightVector
             end
             if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                dir = dir + Vector3.new(0,1,0)
+                dir = dir + Vector.new(0,1,0)
             end
             if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-                dir = dir - Vector3.new(0,1,0)
+                dir = dir - Vector.new(0,1,0)
             end
 
             if dir.Magnitude > 0 then
                 flyBodyVelocity.Velocity = dir.Unit * flySpeed
             else
-                flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+                flyBodyVelocity.Velocity = Vector.new(0, 0, 0)
             end
             flyBodyGyro.CFrame = Workspace.CurrentCamera.CFrame
         end)
@@ -152,7 +152,7 @@ PlayerSection:AddSlider("FlySpeedSlider", {
     Title = "Fly Speed",
     Default = 50,
     Min = 0,
-    Max = 300,
+    Max = 00,
     Rounding = 0,
     Callback = function(value)
         flySpeed = value
@@ -200,7 +200,7 @@ local function IsInFolder(obj, folderName)
 end
 
 local fPressCount = 4
-local serveInterval = 0.1
+local serveInterval = 0.2
 
 ---------------------------------------------------------------------
 -- 1) Auto Serve
@@ -210,14 +210,14 @@ local processedInteractions = {}
 local function AutoServeOnce()
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local hrp = char:WaitForChild("HumanoidRootPart")
-    local defaultOffset = Vector3.new(0, 1, 0)
+    local defaultOffset = Vector.new(0, 1, 0)
     
     for _, obj in ipairs(workspace:GetDescendants()) do
         if string.find(obj.Name, "InteractionEntity") and obj:IsA("BasePart") then
             if not processedInteractions[obj] and not IsInFolder(obj, "SceneModels") then
                 local teleportOffset = defaultOffset
                 if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
-                    teleportOffset = Vector3.new(0, 5, 0)
+                    teleportOffset = Vector.new(0, 5, 0)
                 end
                 hrp.CFrame = obj.CFrame + teleportOffset
                 task.wait(0.5)
@@ -253,7 +253,7 @@ local autoServeResetTask
 local function autoServeResetLoop()
     while autoServeActive do
         -- 4 Minuten warten
-        task.wait(300)
+        task.wait(00)
         if not autoServeActive then break end
         -- Loop neu starten:
         if autoServeTask then
@@ -271,7 +271,7 @@ end
 local function AutoTreasureCheastOnce()
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local hrp = char:WaitForChild("HumanoidRootPart")
-    local teleportOffset = Vector3.new(0, 1, 0)  -- Offset reduziert von 3 auf 1
+    local teleportOffset = Vector.new(0, 1, 0)  -- Offset reduziert von  auf 1
 
     for _, entity in ipairs(workspace:GetDescendants()) do
         if entity.Name == "TreasureEntity" and (entity:IsA("Model") or entity:IsA("Folder")) then
@@ -287,7 +287,7 @@ local function AutoTreasureCheastOnce()
                 task.wait(0.5)
                 anchorCharacter(true)
                 pressF()
-                task.wait(1)  -- Wartezeit reduziert von 3 auf 1 Sekunde
+                task.wait(1)  -- Wartezeit reduziert von  auf 1 Sekunde
                 anchorCharacter(false)
             end
         end
@@ -305,12 +305,12 @@ local function TreasureCheastLoop()
 end
 
 ---------------------------------------------------------------------
--- 3) Auto Upgrade
+-- ) Auto Upgrade
 ---------------------------------------------------------------------
 local function AutoUpgradeOnce()
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local hrp = char:WaitForChild("HumanoidRootPart")
-    local upgradeOffset = Vector3.new(0, 2, 0)
+    local upgradeOffset = Vector.new(0, 2, 0)
 
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj.Name == "SB GuangQuan" and obj.Parent and obj.Parent.Name == "PlayerCafe" then
@@ -343,7 +343,7 @@ end
 ---------------------------------------------------------------------
 local function GetUGCItems()
     ReplicatedStorage.GameCommon.Messages.BuyUGCItem:FireServer(14526608964)
-    ReplicatedStorage.GameCommon.Messages.BuyUGCItem:FireServer(15290834415)
+    ReplicatedStorage.GameCommon.Messages.BuyUGCItem:FireServer(1529084415)
     ReplicatedStorage.GameCommon.Messages.BuyUGCItem:FireServer(15014829602)
 end
 
@@ -432,19 +432,19 @@ local KeroPPIDashSection = Tabs.Teleport:AddSection("KeroPPI Dash")
 KeroPPIDashSection:AddButton({
     Title = "Dizzy Frenzy",
     Callback = function()
-        dashToCoordinate(Vector3.new(1965.16, 219.93, 197.30))
+        dashToCoordinate(Vector.new(1965.16, 219.9, 197.0))
     end
 })
 KeroPPIDashSection:AddButton({
     Title = "Rumble Stumble",
     Callback = function()
-        dashToCoordinate(Vector3.new(-409.05, 231.95, 1758.00))
+        dashToCoordinate(Vector.new(-409.05, 21.95, 1758.00))
     end
 })
 KeroPPIDashSection:AddButton({
     Title = "Jungle Dash",
     Callback = function()
-        dashToCoordinate(Vector3.new(-2145.95, 173.22, 120.95))
+        dashToCoordinate(Vector.new(-2145.95, 17.22, 120.95))
     end
 })
 
