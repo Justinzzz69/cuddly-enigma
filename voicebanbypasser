@@ -1,1 +1,645 @@
-local a=loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))() local b=loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))() local c=loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))() local d=game:GetService("Players") local e=game:GetService("RunService") local f=game:GetService("UserInputService") local g=game:GetService("Workspace") local h=game:GetService("VoiceChatService") local i=d.LocalPlayer local j=function() local k=i.Character;if k then local l=k:FindFirstChild("HumanoidRootPart");local m=k:FindFirstChild("Humanoid");if l then l.Anchored=false end;if m then m.PlatformStand=false;m.Sit=false end end end local n=a:CreateWindow({Title="Voice Ban Bypasser",SubTitle="",TabWidth=160,Size=UDim2.fromOffset(580,460),Acrylic=false,Theme="Dark",MinimizeKey=Enum.KeyCode.LeftControl}) local o={[1]=n:AddTab({Title="Player",Icon="user"}),[2]=n:AddTab({Title="Chams",Icon="eye"}),[3]=n:AddTab({Title="Voice",Icon="mic"}),[4]=n:AddTab({Title="Teleport",Icon="map"}),[5]=n:AddTab({Title="Spectate",Icon="camera"}),[6]=n:AddTab({Title="Info",Icon="heart"}),[7]=n:AddTab({Title="Settings",Icon="settings"})} local p=16 local q=50 local r,s,t; local u=function(v)local w=v:FindFirstChild("HumanoidRootPart")or v:FindFirstChild("Torso");if not w then local x,y=pcall(function()return v:WaitForChild("HumanoidRootPart",5)end);w=y end;return w end local z=function(A) local B=i.Character;if B and B:FindFirstChild("Humanoid")then B.Humanoid.WalkSpeed=A end end local C=function() local B=i.Character;if B and B:FindFirstChild("HumanoidRootPart")then local D=B.HumanoidRootPart;r=Instance.new("BodyVelocity",D);r.Velocity=Vector3.new(0,0,0);r.MaxForce=Vector3.new(1e5,1e5,1e5);s=Instance.new("BodyGyro",D);s.MaxTorque=Vector3.new(1e5,1e5,1e5);s.CFrame=D.CFrame;t=e.RenderStepped:Connect(function() local E=Vector3.new(0,0,0);if f:IsKeyDown(Enum.KeyCode.W)then E=E+g.CurrentCamera.CFrame.LookVector end;if f:IsKeyDown(Enum.KeyCode.S)then E=E-g.CurrentCamera.CFrame.LookVector end;if f:IsKeyDown(Enum.KeyCode.A)then E=E-g.CurrentCamera.CFrame.RightVector end;if f:IsKeyDown(Enum.KeyCode.D)then E=E+g.CurrentCamera.CFrame.RightVector end;if f:IsKeyDown(Enum.KeyCode.Space)then E=E+Vector3.new(0,1,0) end;if f:IsKeyDown(Enum.KeyCode.LeftShift)then E=E-Vector3.new(0,1,0) end;if E.Magnitude>0 then r.Velocity=E.Unit*q else r.Velocity=Vector3.new(0,0,0) end;s.CFrame=g.CurrentCamera.CFrame end)end end local F=function() if r then r:Destroy() r=nil end;if s then s:Destroy() s=nil end;if t then t:Disconnect() t=nil end end local G=function(H)local I=i.Character or i.CharacterAdded:Wait();local J=H.Character or H.CharacterAdded:Wait();local K=u(I);local L=u(J);if K and L then K.CFrame=L.CFrame else warn("Teleportation fehlgeschlagen, kein Root-Part gefunden.") end end local M=function(H)local I=H.Character or H.CharacterAdded:Wait();local J=I:FindFirstChild("Humanoid");if J then g.CurrentCamera.CameraSubject=J;g.CurrentCamera.CameraType=Enum.CameraType.Custom;print("Spectating "..H.Name) else warn("Kein Humanoid bei "..H.Name.." gefunden.") end end local N=function() local I=i.Character or i.CharacterAdded:Wait();local J=I:FindFirstChild("Humanoid");if J then g.CurrentCamera.CameraSubject=J;g.CurrentCamera.CameraType=Enum.CameraType.Custom;print("Spectating beendet."); j() end end local O={{"Head","UpperTorso"},{"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},{"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},{"UpperTorso","LowerTorso"},{"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},{"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"}} local P=false local Q=Color3.new(1,0,0) local R={} local S=function(H)local T={};for U,V in ipairs(O)do local W=Drawing.new("Line");W.Visible=true;W.Transparency=1;W.Color=Q;W.Thickness=2;T[U]=W;end;R[H]=T;end local X=function(H)if not R[H] then S(H) end;local T=R[H];local I=H.Character;if I then for U,V in ipairs(O)do local Y=I:FindFirstChild(V[1]);local Z=I:FindFirstChild(V[2]);if Y and Z then local a0,a1=g.CurrentCamera:WorldToViewportPoint(Y.Position);local a2,a3=g.CurrentCamera:WorldToViewportPoint(Z.Position);if a1 and a3 then T[U].Visible=true;T[U].From=Vector2.new(a0.X,a0.Y);T[U].To=Vector2.new(a2.X,a2.Y);T[U].Color=Q;else T[U].Visible=false;end else T[U].Visible=false;end;end;end end d.PlayerRemoving:Connect(function(H)if R[H] then for _,a4 in ipairs(R[H])do a4:Remove() end;R[H]=nil;end end) e.RenderStepped:Connect(function()if P then for _,H in pairs(d:GetPlayers())do if H~=i and H.Character then X(H) end end;end end) local Y=o[1]:AddSection("Speed, Fly") Y:AddSlider("SpeedSlider",{Title="Walk Speed",Default=16,Min=0,Max=100,Rounding=0}):OnChanged(function(a5)p=a5;z(p)end) Y:AddToggle("FlyToggle",{Title="Fly",Default=false}):OnChanged(function(a6)if a6 then C()else F()end end) Y:AddSlider("FlySpeedSlider",{Title="Fly Speed",Default=50,Min=0,Max=300,Rounding=0}):OnChanged(function(a7)q=a7 end) local Z=o[1]:AddSection("Anti AFK") local a8 local a9=function()if a8 then a8:Disconnect() a8=nil end;a8=i.Idled:Connect(function()game:GetService("VirtualUser"):CaptureController();game:GetService("VirtualUser"):ClickButton2(Vector2.new())end)end local aa=function()if a8 then a8:Disconnect() a8=nil end end Z:AddToggle("AntiAFKToggle",{Title="Anti AFK",Default=false}):OnChanged(function(a10)if a10 then a9()else aa()end end) local ab=o[2]:AddSection("chams") local ac=false local ad=Color3.fromRGB(255,255,255) local ae=function()for _,H in pairs(d:GetPlayers())do if H.Character then local af=H.Character:FindFirstChild("ESPHighlight");if af then af:Destroy()end end end end local ag=function()for _,H in pairs(d:GetPlayers())do if H~=i and H.Character then local af=H.Character:FindFirstChild("ESPHighlight");if not af then af=Instance.new("Highlight");af.Name="ESPHighlight";af.Adornee=H.Character;af.FillColor=ad;af.FillTransparency=0.5;af.OutlineColor=Color3.new(0,0,0);af.OutlineTransparency=0;af.Parent=H.Character;else af.FillColor=ad;end end end end local ah local ai=function()while ac do ag()task.wait(2)end end ab:AddToggle("ChamsToggle",{Title="chams",Default=false}):OnChanged(function(a11)ac=a11;if a11 then ah=task.spawn(ai)else if ah then task.cancel(ah)end;ah=nil;ae()end end) ab:AddColorpicker("ChamsColor",{Title="chams color",Default=ad}):OnChanged(function(a12)ad=a12 end) ab:AddToggle("SkeletonESPToggle",{Title="Skeleton ESP",Default=false}):OnChanged(function(a13)P=a13;if not a13 then for H,a14 in pairs(R)do for _,a15 in ipairs(a14)do a15:Remove()end end;R={}end end) ab:AddColorpicker("SkeletonESPColor",{Title="Skeleton Color",Default=Q}):OnChanged(function(a16)Q=a16 end) local aj=o[2]:AddSection("nametags") local ak=false local al local am=function(H)local an=Instance.new("BillboardGui");an.Name="Nametag";an.Size=UDim2.new(0,50,0,50);an.StudsOffset=Vector3.new(0,2,0);an.AlwaysOnTop=true;local ao=Instance.new("Frame",an);ao.Size=UDim2.new(1,0,1,0);ao.BackgroundTransparency=1;local ap=Instance.new("TextLabel",ao);ap.Size=UDim2.new(1,0,1,0);ap.BackgroundTransparency=1;ap.Text=H.Name;ap.TextScaled=false;ap.TextSize=14;ap.Font=Enum.Font.GothamBold;ap.TextColor3=ad;ap.TextStrokeTransparency=0.3;return an end local aq=function()for _,H in pairs(d:GetPlayers())do if H.Character and H.Character:FindFirstChild("Head")then local ar=H.Character.Head:FindFirstChild("Nametag");if ar then ar:Destroy()end end end end local as=function()for _,H in pairs(d:GetPlayers())do if H~=i and H.Character and H.Character:FindFirstChild("Head")then local at=H.Character.Head;local au=at:FindFirstChild("Nametag");if not au then local av=am(H);av.Parent=at else au.Size=UDim2.new(0,50,0,50);local aw=au:FindFirstChildOfClass("Frame");if aw then local ax=aw:FindFirstChildOfClass("TextLabel");if ax then ax.TextColor3=ad end end end end end end local ay=function()while ak do as()task.wait(2)end end aj:AddToggle("NametagsToggle",{Title="enable nametag",Default=false}):OnChanged(function(a17)ak=a17;if a17 then al=task.spawn(ay)else if al then task.cancel(al)end;al=nil;aq()end end) local az=o[3]:AddSection("Voice Chat") az:AddButton({Title="Bypass Voiceban",Callback=function()if h and h.joinVoice then local a18,a19=pcall(function()h:joinVoice()end);if not a18 then warn("Voice join failed: "..a19)else print("Attempted to join voice.");j()end else warn("VoiceChatService oder joinVoice() nicht verfügbar.")end end}) local a20=function()if not h then return false end local a21,a22=pcall(function()return h.Running end);return(a21 and a22==true)end local a23=false local a24 local a25=function()while a23 do if not a20() then if h and h.joinVoice then local a26,a27=pcall(function()h:joinVoice()end);if a26 then print("Auto Voice Join: Versuch, Voicechat beizutreten.");j()else warn("Auto Voice Join fehlgeschlagen: "..a27)end end end task.wait(5)end end az:AddToggle("AutoVoiceJoinToggle",{Title="Auto Voice Join (experimental)",Default=false}):OnChanged(function(a28)a23=a28;if a28 then a24=task.spawn(a25)else if a24 then task.cancel(a24)end;a24=nil end end) local a29=o[4]:AddSection("Teleport Players") for _,H in pairs(d:GetPlayers())do if H~=i then a29:AddButton({Title=H.Name,Callback=function()G(H)end})end end d.PlayerAdded:Connect(function(H)if H~=i then a29:AddButton({Title=H.Name,Callback=function()G(H)end})end end) local a30=o[5]:AddSection("Spectate Players") a30:AddButton({Title="Stop Spectate",Callback=function()N()end}) for _,H in pairs(d:GetPlayers())do if H~=i then a30:AddButton({Title=H.Name,Callback=function()M(H)end})end end d.PlayerAdded:Connect(function(H)if H~=i then a30:AddButton({Title=H.Name,Callback=function()M(H)end})end end) local a31=o[6]:AddSection("Info") a31:AddParagraph({Title="Info",Content="Made by Tapetenputzer\nDiscord: tapetenputzer"}) b:SetLibrary(a) c:SetLibrary(a) b:IgnoreThemeSettings() b:SetIgnoreIndexes({}) c:SetFolder("FluentScriptHub_MicUp") b:SetFolder("FluentScriptHub_MicUp/configs") c:BuildInterfaceSection(o[7]) b:BuildConfigSection(o[7]) b:LoadAutoloadConfig() a:Notify({Title="Voice Ban Bypasser",Content="Script Loaded!",Duration=5}) n:SelectTab(1)
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local VoiceChatService = game:GetService("VoiceChatService")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Hilfsfunktion, um Movement wieder zu aktivieren (entankern, PlatformStand deaktivieren)
+local function reEnableMovement()
+	local char = LocalPlayer.Character
+	if char then
+		local root = char:FindFirstChild("HumanoidRootPart")
+		local hum = char:FindFirstChild("Humanoid")
+		if root then
+			root.Anchored = false
+		end
+		if hum then
+			hum.PlatformStand = false
+			hum.Sit = false
+		end
+	end
+end
+
+-- Acrylic false, damit kein Blur erzeugt wird
+local Window = Fluent:CreateWindow({
+	Title = "Voice Ban Bypasser",
+	SubTitle = "",
+	TabWidth = 160,
+	Size = UDim2.fromOffset(580, 460),
+	Acrylic = false,
+	Theme = "Dark",
+	MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+local Tabs = {
+	Player   = Window:AddTab({ Title = "Player",   Icon = "user" }),
+	Chams    = Window:AddTab({ Title = "Chams",    Icon = "eye" }),
+	Voice    = Window:AddTab({ Title = "Voice",    Icon = "mic" }),
+	Teleport = Window:AddTab({ Title = "Teleport", Icon = "map" }),
+	Spectate = Window:AddTab({ Title = "Spectate", Icon = "camera" }),
+	Info     = Window:AddTab({ Title = "Info",     Icon = "heart" }),
+	Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+}
+
+local currentSpeed = 16
+local flySpeed = 50
+local flyBodyVelocity, flyBodyGyro, flyConnection
+
+---------------------------------------------------------------------
+-- Hilfsfunktionen
+---------------------------------------------------------------------
+local function getRootPart(character)
+	local root = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
+	if not root then
+		local success
+		success, root = pcall(function()
+			return character:WaitForChild("HumanoidRootPart", 5)
+		end)
+	end
+	return root
+end
+
+local function setWalkSpeed(speed)
+	local char = LocalPlayer.Character
+	if char and char:FindFirstChild("Humanoid") then
+		char.Humanoid.WalkSpeed = speed
+	end
+end
+
+local function enableFly()
+	local char = LocalPlayer.Character
+	if char and char:FindFirstChild("HumanoidRootPart") then
+		local root = char.HumanoidRootPart
+		flyBodyVelocity = Instance.new("BodyVelocity", root)
+		flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+		flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+
+		flyBodyGyro = Instance.new("BodyGyro", root)
+		flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+		flyBodyGyro.CFrame = root.CFrame
+
+		flyConnection = RunService.RenderStepped:Connect(function()
+			local dir = Vector3.new(0, 0, 0)
+			if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+				dir = dir + Workspace.CurrentCamera.CFrame.LookVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+				dir = dir - Workspace.CurrentCamera.CFrame.LookVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+				dir = dir - Workspace.CurrentCamera.CFrame.RightVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+				dir = dir + Workspace.CurrentCamera.CFrame.RightVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+				dir = dir + Vector3.new(0,1,0)
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+				dir = dir - Vector3.new(0,1,0)
+			end
+
+			if dir.Magnitude > 0 then
+				flyBodyVelocity.Velocity = dir.Unit * flySpeed
+			else
+				flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+			end
+			flyBodyGyro.CFrame = Workspace.CurrentCamera.CFrame
+		end)
+	end
+end
+
+local function disableFly()
+	if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
+	if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
+	if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+end
+
+---------------------------------------------------------------------
+-- Teleport-Funktion (wartet auf vollständigen Character)
+---------------------------------------------------------------------
+local function TeleportToPlayer(targetPlayer)
+	local localChar = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	local targetChar = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
+	local root = getRootPart(localChar)
+	local targetRoot = getRootPart(targetChar)
+	if root and targetRoot then
+		root.CFrame = targetRoot.CFrame
+	else
+		warn("Teleportation fehlgeschlagen, kein Root-Part gefunden.")
+	end
+end
+
+---------------------------------------------------------------------
+-- Spectate-Funktionen (wartet auf vollständigen Character)
+---------------------------------------------------------------------
+local function SpectatePlayer(targetPlayer)
+	local targetChar = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
+	local humanoid = targetChar:FindFirstChild("Humanoid")
+	if humanoid then
+		Workspace.CurrentCamera.CameraSubject = humanoid
+		Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+		print("Spectating " .. targetPlayer.Name)
+	else
+		warn("Kein Humanoid bei " .. targetPlayer.Name .. " gefunden.")
+	end
+end
+
+local function StopSpectating()
+	local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	local humanoid = char:FindFirstChild("Humanoid")
+	if humanoid then
+		Workspace.CurrentCamera.CameraSubject = humanoid
+		Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+		print("Spectating beendet.")
+		reEnableMovement()
+	end
+end
+
+---------------------------------------------------------------------
+-- Skeleton ESP (Drawing API)
+---------------------------------------------------------------------
+local SkeletonConnections = {
+	{"Head", "UpperTorso"},
+	{"UpperTorso", "LeftUpperArm"},
+	{"LeftUpperArm", "LeftLowerArm"},
+	{"LeftLowerArm", "LeftHand"},
+	{"UpperTorso", "RightUpperArm"},
+	{"RightUpperArm", "RightLowerArm"},
+	{"RightLowerArm", "RightHand"},
+	{"UpperTorso", "LowerTorso"},
+	{"LowerTorso", "LeftUpperLeg"},
+	{"LeftUpperLeg", "LeftLowerLeg"},
+	{"LeftLowerLeg", "LeftFoot"},
+	{"LowerTorso", "RightUpperLeg"},
+	{"RightUpperLeg", "RightLowerLeg"},
+	{"RightLowerLeg", "RightFoot"}
+}
+
+local skeletonESPEnabled = false
+local skeletonESPColor = Color3.new(1, 0, 0)
+local SkeletonESPs = {}
+
+local function CreateSkeletonForPlayer(player)
+	local drawings = {}
+	for i, connection in ipairs(SkeletonConnections) do
+		local line = Drawing.new("Line")
+		line.Visible = true
+		line.Transparency = 1
+		line.Color = skeletonESPColor
+		line.Thickness = 2
+		drawings[i] = line
+	end
+	SkeletonESPs[player] = drawings
+end
+
+local function UpdateSkeletonESP(player)
+	if not SkeletonESPs[player] then
+		CreateSkeletonForPlayer(player)
+	end
+	local drawings = SkeletonESPs[player]
+	local character = player.Character
+	if character then
+		for i, connection in ipairs(SkeletonConnections) do
+			local partA = character:FindFirstChild(connection[1])
+			local partB = character:FindFirstChild(connection[2])
+			if partA and partB then
+				local vectorA, onScreenA = Workspace.CurrentCamera:WorldToViewportPoint(partA.Position)
+				local vectorB, onScreenB = Workspace.CurrentCamera:WorldToViewportPoint(partB.Position)
+				if onScreenA and onScreenB then
+					drawings[i].Visible = true
+					drawings[i].From = Vector2.new(vectorA.X, vectorA.Y)
+					drawings[i].To = Vector2.new(vectorB.X, vectorB.Y)
+					drawings[i].Color = skeletonESPColor
+				else
+					drawings[i].Visible = false
+				end
+			else
+				drawings[i].Visible = false
+			end
+		end
+	end
+end
+
+Players.PlayerRemoving:Connect(function(player)
+	if SkeletonESPs[player] then
+		for _, line in ipairs(SkeletonESPs[player]) do
+			line:Remove()
+		end
+		SkeletonESPs[player] = nil
+	end
+end)
+
+RunService.RenderStepped:Connect(function()
+	if skeletonESPEnabled then
+		for _, player in pairs(Players:GetPlayers()) do
+			if player ~= LocalPlayer and player.Character then
+				UpdateSkeletonESP(player)
+			end
+		end
+	end
+end)
+
+---------------------------------------------------------------------
+-- Tab: Player
+---------------------------------------------------------------------
+local PlayerSection = Tabs.Player:AddSection("Speed, Fly")
+PlayerSection:AddSlider("SpeedSlider", {
+	Title = "Walk Speed",
+	Default = 16,
+	Min = 0,
+	Max = 100,
+	Rounding = 0
+}):OnChanged(function(value)
+	currentSpeed = value
+	setWalkSpeed(currentSpeed)
+end)
+
+PlayerSection:AddToggle("FlyToggle", { Title = "Fly", Default = false })
+	:OnChanged(function(state)
+		if state then
+			enableFly()
+		else
+			disableFly()
+		end
+	end)
+
+PlayerSection:AddSlider("FlySpeedSlider", {
+	Title = "Fly Speed",
+	Default = 50,
+	Min = 0,
+	Max = 300,
+	Rounding = 0
+}):OnChanged(function(value)
+	flySpeed = value
+end)
+
+---------------------------------------------------------------------
+-- Anti AFK
+---------------------------------------------------------------------
+local AntiAFKSection = Tabs.Player:AddSection("Anti AFK")
+local AFKConnection
+
+local function EnableAntiAFK()
+	if AFKConnection then
+		AFKConnection:Disconnect()
+		AFKConnection = nil
+	end
+	AFKConnection = LocalPlayer.Idled:Connect(function()
+		game:GetService("VirtualUser"):CaptureController()
+		game:GetService("VirtualUser"):ClickButton2(Vector2.new())
+	end)
+end
+
+local function DisableAntiAFK()
+	if AFKConnection then
+		AFKConnection:Disconnect()
+		AFKConnection = nil
+	end
+end
+
+AntiAFKSection:AddToggle("AntiAFKToggle", { Title = "Anti AFK", Default = false })
+	:OnChanged(function(state)
+		if state then
+			EnableAntiAFK()
+		else
+			DisableAntiAFK()
+		end
+	end)
+
+---------------------------------------------------------------------
+-- Tab: Chams (ESP / Nametags)
+---------------------------------------------------------------------
+local chamsActive = false
+local chamsColor = Color3.fromRGB(255, 255, 255)
+
+local function RemoveChams()
+	for _, p in pairs(Players:GetPlayers()) do
+		if p.Character then
+			for _, part in pairs(p.Character:GetDescendants()) do
+				if part:IsA("BasePart") and part:FindFirstChild("ESPBox") then
+					part.ESPBox:Destroy()
+				end
+			end
+		end
+	end
+end
+
+local function UpdateChams()
+	for _, p in pairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer and p.Character then
+			for _, part in pairs(p.Character:GetDescendants()) do
+				if part:IsA("BasePart") then
+					local box = part:FindFirstChild("ESPBox")
+					if not box then
+						box = Instance.new("BoxHandleAdornment")
+						box.Name = "ESPBox"
+						box.Adornee = part
+						box.AlwaysOnTop = true
+						box.ZIndex = 10
+						box.Size = part.Size + Vector3.new(0.1, 0.1, 0.1)
+						box.Transparency = 0.5
+						box.Color3 = chamsColor
+						box.Parent = part
+					else
+						box.Color3 = chamsColor
+					end
+				end
+			end
+		end
+	end
+end
+
+local chamsTask
+local function chamsLoop()
+	while chamsActive do
+		UpdateChams()
+		task.wait(2)
+	end
+end
+
+local chamsSection = Tabs.Chams:AddSection("chams")
+chamsSection:AddToggle("ChamsToggle", { Title = "chams", Default = false })
+	:OnChanged(function(state)
+		chamsActive = state
+		if state then
+			chamsTask = task.spawn(chamsLoop)
+		else
+			if chamsTask then task.cancel(chamsTask) end
+			chamsTask = nil
+			RemoveChams()
+		end
+	end)
+
+chamsSection:AddColorpicker("ChamsColor", { Title = "chams color", Default = chamsColor })
+	:OnChanged(function(c)
+		chamsColor = c
+	end)
+
+-- Skeleton ESP Toggle und Skeleton Colorpicker
+chamsSection:AddToggle("SkeletonESPToggle", { Title = "Skeleton ESP", Default = false })
+	:OnChanged(function(state)
+		skeletonESPEnabled = state
+		if not state then
+			for player, lines in pairs(SkeletonESPs) do
+				for _, line in ipairs(lines) do
+					line:Remove()
+				end
+			end
+			SkeletonESPs = {}
+		end
+	end)
+
+chamsSection:AddColorpicker("SkeletonESPColor", { Title = "Skeleton Color", Default = skeletonESPColor })
+	:OnChanged(function(c)
+		skeletonESPColor = c
+	end)
+
+---------------------------------------------------------------------
+-- Nametags
+---------------------------------------------------------------------
+local NametagsActive = false
+local nametagTask
+
+local function CreateNametag(p)
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "Nametag"
+	billboard.Size = UDim2.new(0, 50, 0, 50)
+	billboard.StudsOffset = Vector3.new(0, 2, 0)
+	billboard.AlwaysOnTop = true
+
+	local frame = Instance.new("Frame", billboard)
+	frame.Size = UDim2.new(1, 0, 1, 0)
+	frame.BackgroundTransparency = 1
+
+	local label = Instance.new("TextLabel", frame)
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.Text = p.Name
+	label.TextScaled = false
+	label.TextSize = 14
+	label.Font = Enum.Font.GothamBold
+	label.TextColor3 = chamsColor
+	label.TextStrokeTransparency = 0.3
+
+	return billboard
+end
+
+local function RemoveNametags()
+	for _, p in pairs(Players:GetPlayers()) do
+		if p.Character and p.Character:FindFirstChild("Head") then
+			local tag = p.Character.Head:FindFirstChild("Nametag")
+			if tag then
+				tag:Destroy()
+			end
+		end
+	end
+end
+
+local function UpdateNametags()
+	for _, p in pairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+			local head = p.Character.Head
+			local existing = head:FindFirstChild("Nametag")
+			if not existing then
+				local tag = CreateNametag(p)
+				tag.Parent = head
+			else
+				existing.Size = UDim2.new(0, 50, 0, 50)
+				local frame = existing:FindFirstChildOfClass("Frame")
+				if frame then
+					local lbl = frame:FindFirstChildOfClass("TextLabel")
+					if lbl then
+						lbl.TextColor3 = chamsColor
+					end
+				end
+			end
+		end
+	end
+end
+
+local function NametagsLoop()
+	while NametagsActive do
+		UpdateNametags()
+		task.wait(2)
+	end
+end
+
+local nametagsSection = Tabs.Chams:AddSection("nametags")
+nametagsSection:AddToggle("NametagsToggle", { Title = "enable nametag", Default = false })
+	:OnChanged(function(s)
+		NametagsActive = s
+		if s then
+			nametagTask = task.spawn(NametagsLoop)
+		else
+			if nametagTask then task.cancel(nametagTask) end
+			nametagTask = nil
+			RemoveNametags()
+		end
+	end)
+
+---------------------------------------------------------------------
+-- Tab: Voice
+---------------------------------------------------------------------
+local VoiceSection = Tabs.Voice:AddSection("Voice Chat")
+
+VoiceSection:AddButton({
+	Title = "Bypass Voiceban",
+	Callback = function()
+		if VoiceChatService and VoiceChatService.joinVoice then
+			local success, err = pcall(function()
+				VoiceChatService:joinVoice()
+			end)
+			if not success then
+				warn("Voice join failed: " .. err)
+			else
+				print("Attempted to join voice.")
+				reEnableMovement()
+			end
+		else
+			warn("VoiceChatService oder joinVoice() nicht verfügbar.")
+		end
+	end
+})
+
+local function isVoiceConnected()
+	if not VoiceChatService then 
+		return false 
+	end
+	local success, result = pcall(function()
+		return VoiceChatService.Running
+	end)
+	if success and result == true then
+		return true
+	end
+	return false
+end
+
+local autoVoiceJoinActive = false
+local autoVoiceJoinTask
+
+local function autoVoiceJoinLoop()
+	while autoVoiceJoinActive do
+		if not isVoiceConnected() then
+			if VoiceChatService and VoiceChatService.joinVoice then
+				local success, err = pcall(function()
+					VoiceChatService:joinVoice()
+				end)
+				if success then
+					print("Auto Voice Join: Versuch, Voicechat beizutreten.")
+					reEnableMovement()
+				else
+					warn("Auto Voice Join fehlgeschlagen: " .. err)
+				end
+			end
+		end
+		task.wait(5)
+	end
+end
+
+VoiceSection:AddToggle("AutoVoiceJoinToggle", { Title = "Auto Voice Join (experimental)", Default = false })
+	:OnChanged(function(state)
+		autoVoiceJoinActive = state
+		if state then
+			autoVoiceJoinTask = task.spawn(autoVoiceJoinLoop)
+		else
+			if autoVoiceJoinTask then task.cancel(autoVoiceJoinTask) end
+			autoVoiceJoinTask = nil
+		end
+	end)
+
+---------------------------------------------------------------------
+-- Tab: Teleport
+---------------------------------------------------------------------
+local TeleportSection = Tabs.Teleport:AddSection("Teleport Players")
+
+for _, plr in pairs(Players:GetPlayers()) do
+	if plr ~= LocalPlayer then
+		TeleportSection:AddButton({
+			Title = plr.Name,
+			Callback = function()
+				TeleportToPlayer(plr)
+			end
+		})
+	end
+end
+
+Players.PlayerAdded:Connect(function(plr)
+	if plr ~= LocalPlayer then
+		TeleportSection:AddButton({
+			Title = plr.Name,
+			Callback = function()
+				TeleportToPlayer(plr)
+			end
+		})
+	end
+end)
+
+---------------------------------------------------------------------
+-- Tab: Spectate
+---------------------------------------------------------------------
+local SpectateSection = Tabs.Spectate:AddSection("Spectate Players")
+
+SpectateSection:AddButton({
+	Title = "Stop Spectate",
+	Callback = function()
+		StopSpectating()
+	end
+})
+
+for _, plr in pairs(Players:GetPlayers()) do
+	if plr ~= LocalPlayer then
+		SpectateSection:AddButton({
+			Title = plr.Name,
+			Callback = function()
+				SpectatePlayer(plr)
+			end
+		})
+	end
+end
+
+Players.PlayerAdded:Connect(function(plr)
+	if plr ~= LocalPlayer then
+		SpectateSection:AddButton({
+			Title = plr.Name,
+			Callback = function()
+				SpectatePlayer(plr)
+			end
+		})
+	end
+end)
+
+---------------------------------------------------------------------
+-- Tab: Info
+---------------------------------------------------------------------
+local InfoSection = Tabs.Info:AddSection("Info")
+InfoSection:AddParagraph({
+	Title = "Info",
+	Content = "Made by Tapetenputzer\nDiscord: tapetenputzer"
+})
+
+---------------------------------------------------------------------
+-- Settings, Speichern, Laden
+---------------------------------------------------------------------
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+InterfaceManager:SetFolder("FluentScriptHub_MicUp")
+SaveManager:SetFolder("FluentScriptHub_MicUp/configs")
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
+SaveManager:LoadAutoloadConfig()
+
+Fluent:Notify({
+	Title = "Voice Ban Bypasser",
+	Content = "Script Loaded!",
+	Duration = 5
+})
+Window:SelectTab(1)
