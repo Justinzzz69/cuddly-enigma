@@ -424,7 +424,7 @@ local function dashToCoordinate(coord)
     print("Teleported to coordinate: " .. tostring(coord))
 end
 
-local KeroPIIDashSection = Tabs.Teleport:AddSection("KeroPII Dash")
+local KeroPIIDashSection = Tabs.Teleport:AddSection("Keroppi Dash Minigame")
 KeroPIIDashSection:AddButton({
     Title = "Dizzy Frenzy",
     Callback = function()
@@ -535,7 +535,7 @@ local function candyAutoCollectLoop()
     end
 end
 
-local KuromiSection = Tabs.Teleport:AddSection("Kuromi Minigame")
+local KuromiSection = Tabs.Teleport:AddSection("Kuromi Cafe Minigame")
 KuromiSection:AddToggle("CandyESPToggle", {
     Title = "Candy ESP",
     Default = false,
