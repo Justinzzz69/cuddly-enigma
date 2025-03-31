@@ -296,7 +296,7 @@ local treasureLoopTask
 local function TreasureCheastLoop()
     while treasureLoopActive do
         AutoTreasureCheastOnce()
-        task.wait(5)
+        task.wait(3)
     end
 end
 
