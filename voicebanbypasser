@@ -319,13 +319,13 @@ AntiAFKSection:AddToggle("AntiAFKToggle", { Title = "Anti AFK", Default = false 
 local chamsActive = false
 local chamsColor = Color3.fromRGB(255, 255, 255)
 
+-- Hier wird ein Highlight-Objekt pro Spieler verwendet, das exakt die Spielerform abdeckt
 local function RemoveChams()
 	for _, p in pairs(Players:GetPlayers()) do
 		if p.Character then
-			for _, part in pairs(p.Character:GetDescendants()) do
-				if part:IsA("BasePart") and part:FindFirstChild("ESPBox") then
-					part.ESPBox:Destroy()
-				end
+			local highlight = p.Character:FindFirstChild("ChamHighlight")
+			if highlight then
+				highlight:Destroy()
 			end
 		end
 	end
@@ -334,23 +334,18 @@ end
 local function UpdateChams()
 	for _, p in pairs(Players:GetPlayers()) do
 		if p ~= LocalPlayer and p.Character then
-			for _, part in pairs(p.Character:GetDescendants()) do
-				if part:IsA("BasePart") then
-					local box = part:FindFirstChild("ESPBox")
-					if not box then
-						box = Instance.new("BoxHandleAdornment")
-						box.Name = "ESPBox"
-						box.Adornee = part
-						box.AlwaysOnTop = true
-						box.ZIndex = 10
-						box.Size = part.Size + Vector3.new(0.1, 0.1, 0.1)
-						box.Transparency = 0.5
-						box.Color3 = chamsColor
-						box.Parent = part
-					else
-						box.Color3 = chamsColor
-					end
-				end
+			local highlight = p.Character:FindFirstChild("ChamHighlight")
+			if not highlight then
+				highlight = Instance.new("Highlight")
+				highlight.Name = "ChamHighlight"
+				highlight.FillColor = chamsColor
+				highlight.OutlineColor = chamsColor
+				highlight.FillTransparency = 0.5
+				highlight.OutlineTransparency = 0
+				highlight.Parent = p.Character
+			else
+				highlight.FillColor = chamsColor
+				highlight.OutlineColor = chamsColor
 			end
 		end
 	end
