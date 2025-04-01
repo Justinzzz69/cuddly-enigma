@@ -51,10 +51,11 @@ local currentSpeed = 16
 local flySpeed = 50
 local flyBodyVelocity, flyBodyGyro, flyConnection
 
----------------------------------------------------------------------
+---------------------------------------------------------
 -- Hilfsfunktionen
----------------------------------------------------------------------
+---------------------------------------------------------
 local function getRootPart(character)
+	-- Versuche zuerst R15 ("HumanoidRootPart"), sonst R6 ("Torso")
 	local root = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
 	if not root then
 		local success
@@ -121,9 +122,9 @@ local function disableFly()
 	if flyConnection then flyConnection:Disconnect() flyConnection = nil end
 end
 
----------------------------------------------------------------------
+---------------------------------------------------------
 -- Teleport-Funktion (wartet auf vollständigen Character)
----------------------------------------------------------------------
+---------------------------------------------------------
 local function TeleportToPlayer(targetPlayer)
 	local localChar = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 	local targetChar = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
@@ -136,9 +137,9 @@ local function TeleportToPlayer(targetPlayer)
 	end
 end
 
----------------------------------------------------------------------
+---------------------------------------------------------
 -- Spectate-Funktionen (wartet auf vollständigen Character)
----------------------------------------------------------------------
+---------------------------------------------------------
 local function SpectatePlayer(targetPlayer)
 	local targetChar = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
 	local humanoid = targetChar:FindFirstChild("Humanoid")
@@ -162,9 +163,9 @@ local function StopSpectating()
 	end
 end
 
----------------------------------------------------------------------
+---------------------------------------------------------
 -- Skeleton ESP (Drawing API)
----------------------------------------------------------------------
+---------------------------------------------------------
 local SkeletonConnections = {
 	{"Head", "UpperTorso"},
 	{"UpperTorso", "LeftUpperArm"},
@@ -246,9 +247,9 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
----------------------------------------------------------------------
+---------------------------------------------------------
 -- Tab: Player
----------------------------------------------------------------------
+---------------------------------------------------------
 local PlayerSection = Tabs.Player:AddSection("Speed, Fly")
 PlayerSection:AddSlider("SpeedSlider", {
 	Title = "Walk Speed",
@@ -280,9 +281,9 @@ PlayerSection:AddSlider("FlySpeedSlider", {
 	flySpeed = value
 end)
 
----------------------------------------------------------------------
+---------------------------------------------------------
 -- Anti AFK
----------------------------------------------------------------------
+---------------------------------------------------------
 local AntiAFKSection = Tabs.Player:AddSection("Anti AFK")
 local AFKConnection
 
@@ -313,39 +314,45 @@ AntiAFKSection:AddToggle("AntiAFKToggle", { Title = "Anti AFK", Default = false 
 		end
 	end)
 
----------------------------------------------------------------------
+---------------------------------------------------------
 -- Tab: Chams (ESP / Nametags)
----------------------------------------------------------------------
+---------------------------------------------------------
 local chamsActive = false
 local chamsColor = Color3.fromRGB(255, 255, 255)
 
--- Hier wird ein Highlight-Objekt pro Spieler verwendet, das exakt die Spielerform abdeckt
+-- Funktion, um für ein Character-Objekt die Chams anzubringen
+local function applyChamsToCharacter(character)
+	local highlight = character:FindFirstChild("ChamHighlight")
+	if not highlight then
+		highlight = Instance.new("Highlight")
+		highlight.Name = "ChamHighlight"
+		highlight.FillColor = chamsColor
+		highlight.OutlineColor = chamsColor
+		highlight.FillTransparency = 0.5
+		highlight.OutlineTransparency = 0
+		highlight.Parent = character
+	else
+		highlight.FillColor = chamsColor
+		highlight.OutlineColor = chamsColor
+	end
+end
+
+-- Update-Funktion: Geht alle Spieler durch und wendet Chams an (sofern vorhanden)
+local function UpdateChams()
+	for _, p in pairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer and p.Character then
+			applyChamsToCharacter(p.Character)
+		end
+	end
+end
+
+-- Entfernt vorhandene Chams von allen Spielern
 local function RemoveChams()
 	for _, p in pairs(Players:GetPlayers()) do
 		if p.Character then
 			local highlight = p.Character:FindFirstChild("ChamHighlight")
 			if highlight then
 				highlight:Destroy()
-			end
-		end
-	end
-end
-
-local function UpdateChams()
-	for _, p in pairs(Players:GetPlayers()) do
-		if p ~= LocalPlayer and p.Character then
-			local highlight = p.Character:FindFirstChild("ChamHighlight")
-			if not highlight then
-				highlight = Instance.new("Highlight")
-				highlight.Name = "ChamHighlight"
-				highlight.FillColor = chamsColor
-				highlight.OutlineColor = chamsColor
-				highlight.FillTransparency = 0.5
-				highlight.OutlineTransparency = 0
-				highlight.Parent = p.Character
-			else
-				highlight.FillColor = chamsColor
-				highlight.OutlineColor = chamsColor
 			end
 		end
 	end
@@ -358,6 +365,27 @@ local function chamsLoop()
 		task.wait(2)
 	end
 end
+
+-- Für alle bereits vorhandenen Spieler (außer LocalPlayer) sowie neu hinzugefügte Spieler den CharacterAdded-Event verbinden
+for _, p in pairs(Players:GetPlayers()) do
+	if p ~= LocalPlayer then
+		p.CharacterAdded:Connect(function(character)
+			if chamsActive then
+				applyChamsToCharacter(character)
+			end
+		end)
+	end
+end
+
+Players.PlayerAdded:Connect(function(p)
+	if p ~= LocalPlayer then
+		p.CharacterAdded:Connect(function(character)
+			if chamsActive then
+				applyChamsToCharacter(character)
+			end
+		end)
+	end
+end)
 
 local chamsSection = Tabs.Chams:AddSection("chams")
 chamsSection:AddToggle("ChamsToggle", { Title = "chams", Default = false })
@@ -396,9 +424,9 @@ chamsSection:AddColorpicker("SkeletonESPColor", { Title = "Skeleton Color", Defa
 		skeletonESPColor = c
 	end)
 
----------------------------------------------------------------------
+---------------------------------------------------------
 -- Nametags
----------------------------------------------------------------------
+---------------------------------------------------------
 local NametagsActive = false
 local nametagTask
 
@@ -479,9 +507,9 @@ nametagsSection:AddToggle("NametagsToggle", { Title = "enable nametag", Default 
 		end
 	end)
 
----------------------------------------------------------------------
+---------------------------------------------------------
 -- Tab: Voice
----------------------------------------------------------------------
+---------------------------------------------------------
 local VoiceSection = Tabs.Voice:AddSection("Voice Chat")
 
 VoiceSection:AddButton({
@@ -549,37 +577,36 @@ VoiceSection:AddToggle("AutoVoiceJoinToggle", { Title = "Auto Voice Join (experi
 		end
 	end)
 
----------------------------------------------------------------------
+---------------------------------------------------------
 -- Tab: Teleport
----------------------------------------------------------------------
+---------------------------------------------------------
 local TeleportSection = Tabs.Teleport:AddSection("Teleport Players")
+local teleportButtons = {}
 
+-- Für bereits vorhandene Spieler
 for _, plr in pairs(Players:GetPlayers()) do
-	if plr ~= LocalPlayer then
-		TeleportSection:AddButton({
+	if plr ~= LocalPlayer and not teleportButtons[plr.UserId] then
+		teleportButtons[plr.UserId] = TeleportSection:AddButton({
 			Title = plr.Name,
-			Callback = function()
-				TeleportToPlayer(plr)
-			end
+			Callback = function() TeleportToPlayer(plr) end
 		})
 	end
 end
 
 Players.PlayerAdded:Connect(function(plr)
-	if plr ~= LocalPlayer then
-		TeleportSection:AddButton({
+	if plr ~= LocalPlayer and not teleportButtons[plr.UserId] then
+		teleportButtons[plr.UserId] = TeleportSection:AddButton({
 			Title = plr.Name,
-			Callback = function()
-				TeleportToPlayer(plr)
-			end
+			Callback = function() TeleportToPlayer(plr) end
 		})
 	end
 end)
 
----------------------------------------------------------------------
+---------------------------------------------------------
 -- Tab: Spectate
----------------------------------------------------------------------
+---------------------------------------------------------
 local SpectateSection = Tabs.Spectate:AddSection("Spectate Players")
+local spectateButtons = {}
 
 SpectateSection:AddButton({
 	Title = "Stop Spectate",
@@ -589,39 +616,35 @@ SpectateSection:AddButton({
 })
 
 for _, plr in pairs(Players:GetPlayers()) do
-	if plr ~= LocalPlayer then
-		SpectateSection:AddButton({
+	if plr ~= LocalPlayer and not spectateButtons[plr.UserId] then
+		spectateButtons[plr.UserId] = SpectateSection:AddButton({
 			Title = plr.Name,
-			Callback = function()
-				SpectatePlayer(plr)
-			end
+			Callback = function() SpectatePlayer(plr) end
 		})
 	end
 end
 
 Players.PlayerAdded:Connect(function(plr)
-	if plr ~= LocalPlayer then
-		SpectateSection:AddButton({
+	if plr ~= LocalPlayer and not spectateButtons[plr.UserId] then
+		spectateButtons[plr.UserId] = SpectateSection:AddButton({
 			Title = plr.Name,
-			Callback = function()
-				SpectatePlayer(plr)
-			end
+			Callback = function() SpectatePlayer(plr) end
 		})
 	end
 end)
 
----------------------------------------------------------------------
+---------------------------------------------------------
 -- Tab: Info
----------------------------------------------------------------------
+---------------------------------------------------------
 local InfoSection = Tabs.Info:AddSection("Info")
 InfoSection:AddParagraph({
 	Title = "Info",
 	Content = "Made by Tapetenputzer\nDiscord: tapetenputzer"
 })
 
----------------------------------------------------------------------
+---------------------------------------------------------
 -- Settings, Speichern, Laden
----------------------------------------------------------------------
+---------------------------------------------------------
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 SaveManager:IgnoreThemeSettings()
