@@ -447,13 +447,13 @@ KeroPIIDashSection:AddButton({
 ---------------------------------------------------------------------
 -- TELEPORT-TAB: Kuromi Minigame (Kuromi ESP + Auto Collect Kuromi)
 ---------------------------------------------------------------------
-local candyESPActive = false  -- wir behalten intern den Namen, ändern aber die Anzeige
+local candyESPActive = false  -- wir behalten intern den Namen "Candy ESP"
 local candyESPTask
-local candyESPColor = Color3.fromRGB(128, 0, 128)  -- Standard: Lila (Purple)
+local candyESPColor = Color3.fromRGB(128, 0, 128)  -- Standard: Lila
 
 -- Funktion zum Erstellen eines BillboardGui-Labels für Kuromi
 local function createKuromiLabel(parent)
-    local existing = parent:FindFirstChild("CandyLabel")  -- ggf. umbenennen, da intern noch Candy
+    local existing = parent:FindFirstChild("CandyLabel")
     if not existing then
         local billboard = Instance.new("BillboardGui")
         billboard.Name = "CandyLabel"
@@ -509,7 +509,7 @@ local function candyESPLoop()
     end
 end
 
--- Auto Collect Kuromi: Teleportiert den Spieler zu jedem Kuromi-Objekt
+-- Auto Collect Kuromi: Teleportiert den Spieler zu jedem "GoldCoin"-Objekt
 local candyAutoCollectActive = false
 local candyAutoCollectTask
 
@@ -535,6 +535,65 @@ local function candyAutoCollectLoop()
     end
 end
 
+---------------------------------------------------------------------
+-- Neue Funktion: "Auto Collect Egg" mit Fallback 
+-- (Falls das Model keine PrimaryPart hat, wird stattdessen der erste gefundene BasePart genommen.)
+---------------------------------------------------------------------
+local eggAutoCollectActive = false
+local eggAutoCollectTask
+
+local function AutoCollectEggLoop()
+    while eggAutoCollectActive do
+        local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        
+        local folder = Workspace:FindFirstChild("CollectItemEntity")
+        if folder then
+            print("Ordner 'CollectItemEntity' gefunden. Anzahl der Objekte: " .. #folder:GetChildren())
+            for _, entity in ipairs(folder:GetChildren()) do
+                if entity:IsA("Model") then
+                    -- Prüfen, ob es eine PrimaryPart gibt
+                    if entity.PrimaryPart then
+                        hrp.CFrame = entity.PrimaryPart.CFrame + Vector3.new(0, 2, 0)
+                        print("Teleportiere zu Model (PrimaryPart): " .. entity.Name)
+                    else
+                        -- Fallback: Ersten BasePart im Modell suchen
+                        local fallbackPart = nil
+                        for _, child in ipairs(entity:GetDescendants()) do
+                            if child:IsA("BasePart") then
+                                fallbackPart = child
+                                break
+                            end
+                        end
+                        
+                        if fallbackPart then
+                            hrp.CFrame = fallbackPart.CFrame + Vector3.new(0, 2, 0)
+                            print("Teleportiere zu Model (Fallback Part): " .. entity.Name)
+                        else
+                            print("Kein BasePart gefunden, überspringe: " .. entity.Name)
+                        end
+                    end
+                    task.wait(1)
+                    
+                elseif entity:IsA("BasePart") then
+                    hrp.CFrame = entity.CFrame + Vector3.new(0, 2, 0)
+                    print("Teleportiere zu BasePart: " .. entity.Name)
+                    task.wait(1)
+                else
+                    print("Überspringe Objekt (weder Model noch BasePart): " .. entity.Name)
+                end
+            end
+        else
+            print("Ordner 'CollectItemEntity' nicht gefunden!")
+        end
+        
+        task.wait(1)
+    end
+end
+
+---------------------------------------------------------------------
+-- TELEPORT-TAB: Sektionen für Kuromi, Egg etc.
+---------------------------------------------------------------------
 local KuromiSection = Tabs.Teleport:AddSection("Kuromi Cafe Minigame")
 KuromiSection:AddToggle("CandyESPToggle", {
     Title = "Candy ESP",
@@ -548,6 +607,7 @@ KuromiSection:AddToggle("CandyESPToggle", {
                 task.cancel(candyESPTask)
                 candyESPTask = nil
             end
+            -- Cleanup
             for _, obj in ipairs(workspace:GetDescendants()) do
                 if obj.Name == "GoldCoin" and (obj:IsA("BasePart") or obj:IsA("Model")) then
                     local esp = obj:FindFirstChild("CandyESP")
@@ -559,6 +619,7 @@ KuromiSection:AddToggle("CandyESPToggle", {
         end
     end
 })
+
 KuromiSection:AddColorpicker("CandyESPColor", {
     Title = "Candy ESP Color",
     Default = candyESPColor,
@@ -566,6 +627,7 @@ KuromiSection:AddColorpicker("CandyESPColor", {
         candyESPColor = color
     end
 })
+
 KuromiSection:AddToggle("CandyAutoCollectToggle", {
     Title = "Auto Collect Candy",
     Default = false,
@@ -577,6 +639,24 @@ KuromiSection:AddToggle("CandyAutoCollectToggle", {
             if candyAutoCollectTask then
                 task.cancel(candyAutoCollectTask)
                 candyAutoCollectTask = nil
+            end
+        end
+    end
+})
+
+-- Section für Egg Auto Collect
+local EggSection = Tabs.Teleport:AddSection("Egg Auto Collect")
+EggSection:AddToggle("EggAutoCollectToggle", {
+    Title = "Auto Collect Egg",
+    Default = false,
+    Callback = function(state)
+        eggAutoCollectActive = state
+        if state then
+            eggAutoCollectTask = task.spawn(AutoCollectEggLoop)
+        else
+            if eggAutoCollectTask then
+                task.cancel(eggAutoCollectTask)
+                eggAutoCollectTask = nil
             end
         end
     end
