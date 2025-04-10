@@ -262,13 +262,14 @@ local function autoServeResetLoop()
 end
 
 ---------------------------------------------------------------------
--- 2) Auto Treasure Cheast
+-- 2) Auto Treasure Cheast (überarbeitet)
 ---------------------------------------------------------------------
 local function AutoTreasureCheastOnce()
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local hrp = char:WaitForChild("HumanoidRootPart")
     local teleportOffset = Vector3.new(0, 3, 0)
     
+    -- Iteration über alle TreasureEntity-Objekte
     for _, entity in ipairs(workspace:GetDescendants()) do
         if entity.Name == "TreasureEntity" and (entity:IsA("Model") or entity:IsA("Folder")) then
             local parts = {}
@@ -283,8 +284,9 @@ local function AutoTreasureCheastOnce()
                 task.wait(0.5)
                 anchorCharacter(true)
                 pressF()
-                task.wait(3)
+                task.wait(0.5)        -- Wartezeit reduziert (statt 3 Sekunden)
                 anchorCharacter(false)
+                task.wait(1)          -- Kleiner Puffer nach dem Freigeben des Charakters
             end
         end
     end
@@ -344,7 +346,7 @@ local function GetUGCItems()
 end
 
 ---------------------------------------------------------------------
--- TELEPORT-TAB: AUTO-FUNKTIONEN und UGC-Button
+-- TELEPORT-TAB: AUTO-FUNKTIONEN und UGC-BUTTON
 ---------------------------------------------------------------------
 local UGCSection = Tabs.Teleport:AddSection("Get UGC Items")
 UGCSection:AddButton({
@@ -447,7 +449,7 @@ KeroPIIDashSection:AddButton({
 ---------------------------------------------------------------------
 -- TELEPORT-TAB: Kuromi Minigame (Kuromi ESP + Auto Collect Kuromi)
 ---------------------------------------------------------------------
-local candyESPActive = false  -- wir behalten intern den Namen "Candy ESP"
+local candyESPActive = false  -- intern als "Candy ESP" geführt
 local candyESPTask
 local candyESPColor = Color3.fromRGB(128, 0, 128)  -- Standard: Lila
 
@@ -536,8 +538,9 @@ local function candyAutoCollectLoop()
 end
 
 ---------------------------------------------------------------------
--- Neue Funktion: "Auto Collect Egg" mit Fallback 
--- (Falls das Model keine PrimaryPart hat, wird stattdessen der erste gefundene BasePart genommen.)
+-- Neue Funktion: "Auto Collect Egg"
+-- Sucht im Ordner "CollectItemEntity" nach allen Objekten (z.B. "CaiDan Cinnamoroll") 
+-- und teleportiert den Spieler dorthin – jeweils mit 1 Sekunde Intervall.
 ---------------------------------------------------------------------
 local eggAutoCollectActive = false
 local eggAutoCollectTask
@@ -552,12 +555,10 @@ local function AutoCollectEggLoop()
             print("Ordner 'CollectItemEntity' gefunden. Anzahl der Objekte: " .. #folder:GetChildren())
             for _, entity in ipairs(folder:GetChildren()) do
                 if entity:IsA("Model") then
-                    -- Prüfen, ob es eine PrimaryPart gibt
                     if entity.PrimaryPart then
                         hrp.CFrame = entity.PrimaryPart.CFrame + Vector3.new(0, 2, 0)
                         print("Teleportiere zu Model (PrimaryPart): " .. entity.Name)
                     else
-                        -- Fallback: Ersten BasePart im Modell suchen
                         local fallbackPart = nil
                         for _, child in ipairs(entity:GetDescendants()) do
                             if child:IsA("BasePart") then
@@ -565,7 +566,6 @@ local function AutoCollectEggLoop()
                                 break
                             end
                         end
-                        
                         if fallbackPart then
                             hrp.CFrame = fallbackPart.CFrame + Vector3.new(0, 2, 0)
                             print("Teleportiere zu Model (Fallback Part): " .. entity.Name)
@@ -574,7 +574,6 @@ local function AutoCollectEggLoop()
                         end
                     end
                     task.wait(1)
-                    
                 elseif entity:IsA("BasePart") then
                     hrp.CFrame = entity.CFrame + Vector3.new(0, 2, 0)
                     print("Teleportiere zu BasePart: " .. entity.Name)
@@ -607,7 +606,6 @@ KuromiSection:AddToggle("CandyESPToggle", {
                 task.cancel(candyESPTask)
                 candyESPTask = nil
             end
-            -- Cleanup
             for _, obj in ipairs(workspace:GetDescendants()) do
                 if obj.Name == "GoldCoin" and (obj:IsA("BasePart") or obj:IsA("Model")) then
                     local esp = obj:FindFirstChild("CandyESP")
