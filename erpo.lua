@@ -189,10 +189,10 @@ local FunctionsSection = Tabs.Functions:AddSection("Auto Revive & Teleports")
 
 -------------------------------
 -- AUTO REVIVE (New):
--- Searches in Workspace.PlayerHeads for an object named "Model."
--- If found, teleports the player's character (HumanoidRootPart)
--- with a Y-offset of 5 units above the target, located at
--- Workspace.Spawn Area.Important.ReviveChecker.Hitbox.
+-- Sucht in Workspace.PlayerHeads nach einem Objekt namens "Model."
+-- Wenn gefunden, teleportiert es den Charakter (HumanoidRootPart)
+-- mit einem Y-Offset von 5 Einheiten über dem Ziel, welches sich
+-- bei Workspace.Spawn Area.Important.ReviveChecker.Hitbox befindet.
 -------------------------------
 local autoReviveActive = false
 local autoReviveConnection
@@ -258,12 +258,11 @@ TeleportSection:AddButton({
 				if item:IsA("Model") then
 					local itemPrimary = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
 					if itemPrimary then
-						local offset = CFrame.new(math.random(-3,3), math.random(5,8), math.random(-3,3))
-						itemPrimary.CFrame = targetPart.CFrame * offset
+						-- Kein Zufallsoffset mehr – Items werden exakt auf dem Ziel platziert.
+						itemPrimary.CFrame = targetPart.CFrame
 					end
 				elseif item:IsA("BasePart") then
-					local offset = CFrame.new(math.random(-3,3), math.random(5,8), math.random(-3,3))
-					item.CFrame = targetPart.CFrame * offset
+					item.CFrame = targetPart.CFrame
 				end
 			end
 		end
@@ -305,8 +304,8 @@ FunctionsSection:AddButton({
 -------------------------------
 -- AUTO SHOPPING
 -------------------------------
--- Teleports all objects from "Shop Items" (including folders "Consumable", "Items" and "Weapons")
--- to the target: Workspace.Store.Store.ItemChecker.Hitbox, with a small random offset (including Y-offset)
+-- Teleportiert alle Objekte aus "Shop Items" (inklusive den Ordnern "Consumable", "Items" und "Weapons")
+-- zum Ziel: Workspace.Store.Store.ItemChecker.Hitbox, nun ohne zufälligen Offset.
 local function AutoShopping()
 	local shopItems = Workspace:FindFirstChild("Shop Items")
 	if not shopItems then return end
@@ -320,21 +319,18 @@ local function AutoShopping()
 	if not hitbox or not hitbox:IsA("BasePart") then return end
 	local targetCF = hitbox.CFrame
 
-	local function getRandomOffset()
-		return CFrame.new(math.random(-3,3), math.random(5,8), math.random(-3,3))
-	end
-
 	local function teleportFolder(folder)
 		for _, obj in ipairs(folder:GetChildren()) do
 			if obj:IsA("Folder") then
 				teleportFolder(obj)
 			else
 				if obj:IsA("BasePart") then
-					obj.CFrame = targetCF * getRandomOffset()
+					-- Direktes Teleportieren ohne Offset
+					obj.CFrame = targetCF
 				elseif obj:IsA("Model") then
 					local base = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
 					if base then
-						base.CFrame = targetCF * getRandomOffset()
+						base.CFrame = targetCF
 					end
 				end
 			end
