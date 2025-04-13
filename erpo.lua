@@ -189,19 +189,28 @@ local FunctionsSection = Tabs.Functions:AddSection("Auto Revive & Teleports")
 
 -------------------------------
 -- AUTO REVIVE (New):
--- Sucht in Workspace.PlayerHeads nach einem Objekt namens "Model."
--- Wenn gefunden, teleportiert es den Charakter (HumanoidRootPart)
--- mit einem Y-Offset von 5 Einheiten über dem Ziel, welches sich
--- bei Workspace.Spawn Area.Important.ReviveChecker.Hitbox befindet.
+-- Statt den Humanoid des Spielers zu teleportieren, wird nun das erste Objekt
+-- im "PlayerHeads"-Ordner gefunden und mit einem Y-Offset von 5 Einheiten
+-- über dem ReviveChecker-Hitbox teleportiert.
 -------------------------------
-local autoReviveActive = false
 local autoReviveConnection
 
 local function AutoReviveCallback()
 	local playerHeads = Workspace:FindFirstChild("PlayerHeads")
 	if not playerHeads then return end
-	local modelObj = playerHeads:FindFirstChild("Model")
-	if modelObj then
+
+	local headObj = nil
+	for _, obj in ipairs(playerHeads:GetChildren()) do
+		if obj:IsA("BasePart") then
+			headObj = obj
+			break
+		elseif obj:IsA("Model") then
+			headObj = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+			if headObj then break end
+		end
+	end
+
+	if headObj then
 		local spawnArea = Workspace:FindFirstChild("Spawn Area")
 		if not spawnArea then return end
 		local important = spawnArea:FindFirstChild("Important")
@@ -209,11 +218,8 @@ local function AutoReviveCallback()
 		local reviveChecker = important:FindFirstChild("ReviveChecker")
 		if not reviveChecker then return end
 		local hitbox = reviveChecker:FindFirstChild("Hitbox")
-		if hitbox and hitbox:IsA("BasePart") and LocalPlayer.Character then
-			local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-			if root then
-				root.CFrame = hitbox.CFrame * CFrame.new(0,5,0)
-			end
+		if hitbox and hitbox:IsA("BasePart") then
+			headObj.CFrame = hitbox.CFrame * CFrame.new(0,5,0)
 		end
 	end
 end
@@ -255,14 +261,22 @@ TeleportSection:AddButton({
 		local spawnedLootFolder = Workspace:FindFirstChild("Spawned Loot")
 		if spawnedLootFolder then
 			for _, item in ipairs(spawnedLootFolder:GetChildren()) do
+				local basePart = nil
 				if item:IsA("Model") then
-					local itemPrimary = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
-					if itemPrimary then
-						-- Kein Zufallsoffset mehr – Items werden exakt auf dem Ziel platziert.
-						itemPrimary.CFrame = targetPart.CFrame
-					end
+					basePart = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
 				elseif item:IsA("BasePart") then
-					item.CFrame = targetPart.CFrame
+					basePart = item
+				end
+				if basePart then
+					-- Positioniere das Item 1 Stud über dem Ziel
+					basePart.CFrame = targetPart.CFrame * CFrame.new(0,1,0)
+					-- Setze ggf. die Velocity zurück
+					basePart.Velocity = Vector3.new(0,0,0)
+					-- Kurzer Delay, dann un-anchor, damit die Physik die Schwerkraft wirken lässt
+					task.spawn(function()
+						task.wait(0.1)
+						basePart.Anchored = false
+					end)
 				end
 			end
 		end
@@ -304,8 +318,10 @@ FunctionsSection:AddButton({
 -------------------------------
 -- AUTO SHOPPING
 -------------------------------
--- Teleportiert alle Objekte aus "Shop Items" (inklusive den Ordnern "Consumable", "Items" und "Weapons")
--- zum Ziel: Workspace.Store.Store.ItemChecker.Hitbox, nun ohne zufälligen Offset.
+-- Teleportiert alle Objekte aus "Shop Items" (inklusive Ordner "Consumable", "Items" und "Weapons")
+-- zum Ziel: Workspace.Store.Store.ItemChecker.Hitbox.
+-- Es wird ein fester Y‑Offset von 1 Stud verwendet, dann ein kurzer Delay und anschließendes un-anchor,
+-- sodass die Items natürlich herunterfallen.
 local function AutoShopping()
 	local shopItems = Workspace:FindFirstChild("Shop Items")
 	if not shopItems then return end
@@ -324,14 +340,19 @@ local function AutoShopping()
 			if obj:IsA("Folder") then
 				teleportFolder(obj)
 			else
+				local base = nil
 				if obj:IsA("BasePart") then
-					-- Direktes Teleportieren ohne Offset
-					obj.CFrame = targetCF
+					base = obj
 				elseif obj:IsA("Model") then
-					local base = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-					if base then
-						base.CFrame = targetCF
-					end
+					base = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+				end
+				if base then
+					base.CFrame = targetCF * CFrame.new(0,1,0)
+					base.Velocity = Vector3.new(0,0,0)
+					task.spawn(function()
+						task.wait(0.1)
+						base.Anchored = false
+					end)
 				end
 			end
 		end
@@ -540,6 +561,7 @@ local function createItemESP(item)
 	label.TextStrokeTransparency = 0.3
 	label.Parent = billboard
 
+	-- Bei Models: Versuch, den relevanten BasePart für den Highlight zu ermitteln
 	billboard.Parent = item
 	itemESPGuis[item] = billboard
 end
@@ -553,14 +575,20 @@ end
 
 local function createItemChams(item)
 	if itemChamInstances[item] then return end
+	local target = item
+	-- Falls es ein Model ist, verwende dessen PrimaryPart oder das erste BasePart
+	if item:IsA("Model") then
+		target = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
+		if not target then return end
+	end
 	local highlight = Instance.new("Highlight")
 	highlight.Name = "ItemChamHighlight"
-	highlight.Adornee = item
+	highlight.Adornee = target
 	highlight.FillColor = itemColor
 	highlight.OutlineColor = itemColor
 	highlight.FillTransparency = 0.5
 	highlight.OutlineTransparency = 0
-	highlight.Parent = item
+	highlight.Parent = target
 	itemChamInstances[item] = highlight
 end
 
