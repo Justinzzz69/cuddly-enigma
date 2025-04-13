@@ -189,10 +189,11 @@ local FunctionsSection = Tabs.Functions:AddSection("Auto Revive & Teleports")
 
 -------------------------------
 -- AUTO REVIVE (Neu):
--- Bei Aktivierung sucht der Code im Ordner Workspace.PlayerHeads nach einem Objekt namens "Model".
--- Wird es gefunden, wird der Spieler-Charakter (HumanoidRootPart) an den Zielpunkt teleportiert,
--- der im ReviveChecker unter Workspace.Spawn Area.Important.ReviveChecker.Hitbox liegt.
--- Zusätzlich wird ein Y-Offset von 5 Einheiten hinzugefügt (also _über_ dem Ziel).
+-- Sucht im Ordner Workspace.PlayerHeads nach einem Objekt namens "Model".
+-- Wird es gefunden, wird der Spieler-Charakter (HumanoidRootPart)
+-- mit einem Y-Offset von 5 Einheiten (also etwas über dem Ziel)
+-- zum Ziel teleportiert, das im ReviveChecker unter
+-- Workspace.Spawn Area.Important.ReviveChecker.Hitbox liegt.
 -------------------------------
 local autoReviveActive = false
 local autoReviveConnection
@@ -212,7 +213,6 @@ local function AutoReviveCallback()
 		if hitbox and hitbox:IsA("BasePart") and LocalPlayer.Character then
 			local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 			if root then
-				-- Teleportiere den Charakter etwas über dem Hitbox (Y-Offset von 5)
 				root.CFrame = hitbox.CFrame * CFrame.new(0,5,0)
 				print("Auto Revive: Teleported above the ReviveChecker-Hitbox!")
 			end
@@ -319,7 +319,7 @@ FunctionsSection:AddButton({
 -- AUTO SHOPPING
 -------------------------------
 -- Teleportiert alle Objekte aus "Shop Items" (inklusive Unterordner "Consumable", "Items" und "Weapons")
--- zum Ziel: Workspace.Store.Store.ItemChecker.Hitbox, mit einem kleinen Zufallsoffset (inkl. Y-Offset, sodass sie etwas darüber spawnen).
+-- zum Ziel: Workspace.Store.Store.ItemChecker.Hitbox, mit einem kleinen Zufallsoffset (inkl. Y-Offset)
 local function AutoShopping()
 	local shopItems = Workspace:FindFirstChild("Shop Items")
 	if not shopItems then
@@ -349,8 +349,7 @@ local function AutoShopping()
 	local targetCF = hitbox.CFrame
 
 	local function getRandomOffset()
-		-- Hier wird ein zufälliger Offset erzeugt, mit Y-Werten zwischen 5 und 8,
-		-- sodass die Items etwas über dem Ziel spawnen.
+		-- Zufallsoffset, Y zwischen 5 und 8
 		return CFrame.new(math.random(-3,3), math.random(5,8), math.random(-3,3))
 	end
 
@@ -388,6 +387,7 @@ FunctionsSection:AddButton({
 local espActive = false
 local espColor = Color3.fromRGB(255,255,255)
 
+-- 1) Spieler ESP (Chams)
 local function applyESPToCharacter(character)
 	local highlight = character:FindFirstChild("ChamHighlight")
 	if not highlight then
@@ -449,6 +449,7 @@ Players.PlayerAdded:Connect(function(p)
 	end
 end)
 
+-- 2) Nametags
 local NametagsActive = false
 local nametagTask
 
@@ -541,6 +542,329 @@ nametagsSection:AddToggle("NametagsToggle", { Title = "Nametags", Default = fals
 			nametagTask = nil
 			RemoveNametags()
 		end
+	end)
+
+-- 3) Item ESP + Chams
+local itemESPActive = false
+local itemColor = Color3.fromRGB(255,255,0)
+local itemESPGuis = {}
+local itemChamInstances = {}
+
+local function createItemESP(item)
+	if itemESPGuis[item] then return end
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "ItemESP"
+	billboard.Size = UDim2.new(0,100,0,20)
+	billboard.StudsOffset = Vector3.new(0,2,0)
+	billboard.AlwaysOnTop = true
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1,0,1,0)
+	label.BackgroundTransparency = 1
+	label.Text = item.Name
+	label.TextColor3 = itemColor
+	label.TextScaled = true
+	label.Font = Enum.Font.GothamBold
+	label.TextStrokeTransparency = 0.3
+	label.Parent = billboard
+
+	billboard.Parent = item
+	itemESPGuis[item] = billboard
+end
+
+local function removeItemESP(item)
+	if itemESPGuis[item] then
+		itemESPGuis[item]:Destroy()
+		itemESPGuis[item] = nil
+	end
+end
+
+local function createItemChams(item)
+	if itemChamInstances[item] then return end
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "ItemChamHighlight"
+	highlight.Adornee = item
+	highlight.FillColor = itemColor
+	highlight.OutlineColor = itemColor
+	highlight.FillTransparency = 0.5
+	highlight.OutlineTransparency = 0
+	highlight.Parent = item
+	itemChamInstances[item] = highlight
+end
+
+local function removeItemChams(item)
+	if itemChamInstances[item] then
+		itemChamInstances[item]:Destroy()
+		itemChamInstances[item] = nil
+	end
+end
+
+local function removeAllItemESP()
+	for item, gui in pairs(itemESPGuis) do
+		if gui then gui:Destroy() end
+	end
+	table.clear(itemESPGuis)
+	for item, instance in pairs(itemChamInstances) do
+		if instance then instance:Destroy() end
+	end
+	table.clear(itemChamInstances)
+end
+
+local function updateItemESP()
+	local spawnedLootFolder = Workspace:FindFirstChild("Spawned Loot")
+	if not spawnedLootFolder then return end
+
+	local currentItems = {}
+	for _, child in pairs(spawnedLootFolder:GetChildren()) do
+		currentItems[child] = true
+		if not itemESPGuis[child] then createItemESP(child) end
+		if not itemChamInstances[child] then createItemChams(child) end
+	end
+
+	for storedItem, _ in pairs(itemESPGuis) do
+		if not currentItems[storedItem] then
+			removeItemESP(storedItem)
+			removeItemChams(storedItem)
+		end
+	end
+end
+
+local function itemESPLoop()
+	while itemESPActive do
+		updateItemESP()
+		task.wait(2)
+	end
+end
+
+local itemESPSection = Tabs.ESP:AddSection("Item ESP")
+itemESPSection:AddToggle("ItemESPToggle", { Title = "Item ESP", Default = false })
+	:OnChanged(function(state)
+		itemESPActive = state
+		if state then
+			task.defer(itemESPLoop)
+		else
+			removeAllItemESP()
+		end
+	end)
+
+itemESPSection:AddColorpicker("ItemColor", { Title = "Item Farbe", Default = itemColor })
+	:OnChanged(function(c)
+		itemColor = c
+	end)
+
+-- 4) Enemy ESP + Chams
+local enemyESPActive = false
+local enemyColor = Color3.fromRGB(255,0,0)
+local enemyESPGuis = {}
+local enemyChamInstances = {}
+
+local function createEnemyESP(enemy)
+	if enemyESPGuis[enemy] then return end
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "EnemyESP"
+	billboard.Size = UDim2.new(0,100,0,20)
+	billboard.StudsOffset = Vector3.new(0,2,0)
+	billboard.AlwaysOnTop = true
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1,0,1,0)
+	label.BackgroundTransparency = 1
+	label.Text = enemy.Name
+	label.TextColor3 = enemyColor
+	label.TextScaled = true
+	label.Font = Enum.Font.GothamBold
+	label.TextStrokeTransparency = 0.3
+	label.Parent = billboard
+
+	billboard.Parent = enemy
+	enemyESPGuis[enemy] = billboard
+end
+
+local function removeEnemyESP(enemy)
+	if enemyESPGuis[enemy] then
+		enemyESPGuis[enemy]:Destroy()
+		enemyESPGuis[enemy] = nil
+	end
+end
+
+local function createEnemyChams(enemy)
+	if enemyChamInstances[enemy] then return end
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "EnemyChamHighlight"
+	highlight.Adornee = enemy
+	highlight.FillColor = enemyColor
+	highlight.OutlineColor = enemyColor
+	highlight.FillTransparency = 0.5
+	highlight.OutlineTransparency = 0
+	highlight.Parent = enemy
+	enemyChamInstances[enemy] = highlight
+end
+
+local function removeEnemyChams(enemy)
+	if enemyChamInstances[enemy] then
+		enemyChamInstances[enemy]:Destroy()
+		enemyChamInstances[enemy] = nil
+	end
+end
+
+local function removeAllEnemyESP()
+	for enemy, gui in pairs(enemyESPGuis) do
+		if gui then gui:Destroy() end
+	end
+	table.clear(enemyESPGuis)
+	for enemy, instance in pairs(enemyChamInstances) do
+		if instance then instance:Destroy() end
+	end
+	table.clear(enemyChamInstances)
+end
+
+local function updateEnemyESP()
+	local spawnedEnemiesFolder = Workspace:FindFirstChild("Spawned Enemies")
+	if not spawnedEnemiesFolder then return end
+
+	local currentEnemies = {}
+	for _, child in pairs(spawnedEnemiesFolder:GetChildren()) do
+		currentEnemies[child] = true
+		if not enemyESPGuis[child] then createEnemyESP(child) end
+		if not enemyChamInstances[child] then createEnemyChams(child) end
+	end
+
+	for storedEnemy, _ in pairs(enemyESPGuis) do
+		if not currentEnemies[storedEnemy] then
+			removeEnemyESP(storedEnemy)
+			removeEnemyChams(storedEnemy)
+		end
+	end
+end
+
+local function enemyESPLoop()
+	while enemyESPActive do
+		updateEnemyESP()
+		task.wait(2)
+	end
+end
+
+local enemyESPSection = Tabs.ESP:AddSection("Enemy ESP")
+enemyESPSection:AddToggle("EnemyESPToggle", { Title = "Enemy ESP", Default = false })
+	:OnChanged(function(state)
+		enemyESPActive = state
+		if state then
+			task.defer(enemyESPLoop)
+		else
+			removeAllEnemyESP()
+		end
+	end)
+
+enemyESPSection:AddColorpicker("EnemyColor", { Title = "Enemy Farbe", Default = enemyColor })
+	:OnChanged(function(c)
+		enemyColor = c
+	end)
+
+-- 5) QuotaChecker ESP + Chams
+local quotaCheckerESPActive = false
+local quotaCheckerColor = Color3.fromRGB(255,128,64)
+local quotaCheckerESPGuis = {}
+local quotaCheckerChamInstances = {}
+
+local function createQuotaCheckerESP(qcModel)
+	if quotaCheckerESPGuis[qcModel] then return end
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "QuotaCheckerESP"
+	billboard.Size = UDim2.new(0,120,0,30)
+	billboard.StudsOffset = Vector3.new(0,3,0)
+	billboard.AlwaysOnTop = true
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1,0,1,0)
+	label.BackgroundTransparency = 1
+	label.Text = "Quota Checker"
+	label.TextColor3 = quotaCheckerColor
+	label.TextScaled = true
+	label.Font = Enum.Font.GothamBold
+	label.TextStrokeTransparency = 0.3
+	label.Parent = billboard
+
+	billboard.Parent = qcModel
+	quotaCheckerESPGuis[qcModel] = billboard
+end
+
+local function removeQuotaCheckerESP(qcModel)
+	if quotaCheckerESPGuis[qcModel] then
+		quotaCheckerESPGuis[qcModel]:Destroy()
+		quotaCheckerESPGuis[qcModel] = nil
+	end
+end
+
+local function createQuotaCheckerChams(qcModel)
+	if quotaCheckerChamInstances[qcModel] then return end
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "QuotaCheckerHighlight"
+	highlight.Adornee = qcModel
+	highlight.FillColor = quotaCheckerColor
+	highlight.OutlineColor = quotaCheckerColor
+	highlight.FillTransparency = 0.5
+	highlight.OutlineTransparency = 0
+	highlight.Parent = qcModel
+	quotaCheckerChamInstances[qcModel] = highlight
+end
+
+local function removeQuotaCheckerChams(qcModel)
+	if quotaCheckerChamInstances[qcModel] then
+		quotaCheckerChamInstances[qcModel]:Destroy()
+		quotaCheckerChamInstances[qcModel] = nil
+	end
+end
+
+local function removeAllQuotaCheckerESP()
+	for qc, gui in pairs(quotaCheckerESPGuis) do
+		if gui then gui:Destroy() end
+	end
+	table.clear(quotaCheckerESPGuis)
+	for qc, instance in pairs(quotaCheckerChamInstances) do
+		if instance then instance:Destroy() end
+	end
+	table.clear(quotaCheckerChamInstances)
+end
+
+local function updateQuotaCheckerESP()
+	local spawnArea = Workspace:FindFirstChild("Spawn Area")
+	if not spawnArea then return end
+	local important = spawnArea:FindFirstChild("Important")
+	if not important then return end
+	local quotaCheckerFolder = important:FindFirstChild("QuotaChecker")
+	if not quotaCheckerFolder then return end
+
+	local qcModel = quotaCheckerFolder:FindFirstChild("Model")
+	if not qcModel then return end
+	if not quotaCheckerESPGuis[qcModel] then
+		createQuotaCheckerESP(qcModel)
+	end
+	if not quotaCheckerChamInstances[qcModel] then
+		createQuotaCheckerChams(qcModel)
+	end
+end
+
+local function quotaCheckerESPLoop()
+	while quotaCheckerESPActive do
+		updateQuotaCheckerESP()
+		task.wait(2)
+	end
+end
+
+local quotaCheckerSection = Tabs.ESP:AddSection("QuotaChecker ESP")
+quotaCheckerSection:AddToggle("QuotaCheckerESPToggle", { Title = "QuotaChecker ESP", Default = false })
+	:OnChanged(function(state)
+		quotaCheckerESPActive = state
+		if state then
+			task.defer(quotaCheckerESPLoop)
+		else
+			removeAllQuotaCheckerESP()
+		end
+	end)
+
+quotaCheckerSection:AddColorpicker("QuotaCheckerColor", { Title = "QuotaChecker Farbe", Default = quotaCheckerColor })
+	:OnChanged(function(c)
+		quotaCheckerColor = c
 	end)
 
 ---------------------------------------------------------
