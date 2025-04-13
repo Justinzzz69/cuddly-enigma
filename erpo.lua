@@ -10,7 +10,7 @@ local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Hilfsfunktion, um Movement wieder zu aktivieren (Entankern, PlatformStand deaktivieren)
+-- Helper function to re-enable movement (un-anchor, disable PlatformStand)
 local function reEnableMovement()
 	local char = LocalPlayer.Character
 	if char then
@@ -24,7 +24,7 @@ local function reEnableMovement()
 	end
 end
 
--- Acrylic false, damit kein Blur erzeugt wird
+-- Create window (Acrylic = false for no blur)
 local Window = Fluent:CreateWindow({
 	Title = "ERPO Script",
 	SubTitle = "",
@@ -49,7 +49,7 @@ local flySpeed = 50
 local flyBodyVelocity, flyBodyGyro, flyConnection
 
 ---------------------------------------------------------
--- Hilfsfunktionen
+-- Helper functions
 ---------------------------------------------------------
 local function getRootPart(character)
 	local root = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
@@ -95,10 +95,10 @@ local function enableFly()
 				dir = dir + Workspace.CurrentCamera.CFrame.RightVector
 			end
 			if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-				dir = dir + Vector3.new(0,1,0)
+				dir = dir + Vector3.new(0, 1, 0)
 			end
 			if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-				dir = dir - Vector3.new(0,1,0)
+				dir = dir - Vector3.new(0, 1, 0)
 			end
 
 			if dir.Magnitude > 0 then
@@ -188,12 +188,11 @@ AntiAFKSection:AddToggle("AntiAFKToggle", { Title = "Anti AFK", Default = false 
 local FunctionsSection = Tabs.Functions:AddSection("Auto Revive & Teleports")
 
 -------------------------------
--- AUTO REVIVE (Neu):
--- Sucht im Ordner Workspace.PlayerHeads nach einem Objekt namens "Model".
--- Wird es gefunden, wird der Spieler-Charakter (HumanoidRootPart)
--- mit einem Y-Offset von 5 Einheiten (also etwas über dem Ziel)
--- zum Ziel teleportiert, das im ReviveChecker unter
--- Workspace.Spawn Area.Important.ReviveChecker.Hitbox liegt.
+-- AUTO REVIVE (New):
+-- Searches in Workspace.PlayerHeads for an object named "Model."
+-- If found, teleports the player's character (HumanoidRootPart)
+-- with a Y-offset of 5 units above the target, located at
+-- Workspace.Spawn Area.Important.ReviveChecker.Hitbox.
 -------------------------------
 local autoReviveActive = false
 local autoReviveConnection
@@ -214,10 +213,7 @@ local function AutoReviveCallback()
 			local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 			if root then
 				root.CFrame = hitbox.CFrame * CFrame.new(0,5,0)
-				print("Auto Revive: Teleported above the ReviveChecker-Hitbox!")
 			end
-		else
-			warn("Hitbox im ReviveChecker nicht gefunden oder ungültig!")
 		end
 	end
 end
@@ -228,13 +224,11 @@ FunctionsSection:AddToggle("AutoReviveToggle", { Title = "Auto Revive", Default 
 			autoReviveConnection = RunService.RenderStepped:Connect(function()
 				AutoReviveCallback()
 			end)
-			print("Auto Revive aktiviert.")
 		else
 			if autoReviveConnection then
 				autoReviveConnection:Disconnect()
 				autoReviveConnection = nil
 			end
-			print("Auto Revive deaktiviert.")
 		end
 	end)
 
@@ -256,10 +250,7 @@ TeleportSection:AddButton({
 		if not qcModel then return end
 
 		local targetPart = qcModel.PrimaryPart or qcModel:FindFirstChildWhichIsA("BasePart")
-		if not targetPart then
-			warn("Kein Part im QuotaChecker Model gefunden!")
-			return
-		end
+		if not targetPart then return end
 
 		local spawnedLootFolder = Workspace:FindFirstChild("Spawned Loot")
 		if spawnedLootFolder then
@@ -295,15 +286,11 @@ local function TeleportToShip()
 	elseif playerSpawn:IsA("Model") then
 		targetPart = playerSpawn.PrimaryPart or playerSpawn:FindFirstChildWhichIsA("BasePart")
 	end
-	if not targetPart then
-		warn("Kein Ziel-Part im PlayerSpawn gefunden!")
-		return
-	end
+	if not targetPart then return end
 	if LocalPlayer.Character then
 		local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 		if root then
 			root.CFrame = targetPart.CFrame
-			print("Teleported to Ship (PlayerSpawn)!")
 		end
 	end
 end
@@ -318,38 +305,22 @@ FunctionsSection:AddButton({
 -------------------------------
 -- AUTO SHOPPING
 -------------------------------
--- Teleportiert alle Objekte aus "Shop Items" (inklusive Unterordner "Consumable", "Items" und "Weapons")
--- zum Ziel: Workspace.Store.Store.ItemChecker.Hitbox, mit einem kleinen Zufallsoffset (inkl. Y-Offset)
+-- Teleports all objects from "Shop Items" (including folders "Consumable", "Items" and "Weapons")
+-- to the target: Workspace.Store.Store.ItemChecker.Hitbox, with a small random offset (including Y-offset)
 local function AutoShopping()
 	local shopItems = Workspace:FindFirstChild("Shop Items")
-	if not shopItems then
-		warn("Ordner 'Shop Items' nicht gefunden!")
-		return
-	end
+	if not shopItems then return end
 	local targetContainer = Workspace:FindFirstChild("Store")
-	if not targetContainer then
-		warn("Ordner 'Store' nicht gefunden!")
-		return
-	end
+	if not targetContainer then return end
 	local storeStore = targetContainer:FindFirstChild("Store")
-	if not storeStore then
-		warn("Unterordner 'Store' im 'Store' nicht vorhanden!")
-		return
-	end
+	if not storeStore then return end
 	local itemChecker = storeStore:FindFirstChild("ItemChecker")
-	if not itemChecker then
-		warn("ItemChecker nicht gefunden!")
-		return
-	end
+	if not itemChecker then return end
 	local hitbox = itemChecker:FindFirstChild("Hitbox")
-	if not hitbox or not hitbox:IsA("BasePart") then
-		warn("Hitbox im ItemChecker nicht gefunden oder ungültig!")
-		return
-	end
+	if not hitbox or not hitbox:IsA("BasePart") then return end
 	local targetCF = hitbox.CFrame
 
 	local function getRandomOffset()
-		-- Zufallsoffset, Y zwischen 5 und 8
 		return CFrame.new(math.random(-3,3), math.random(5,8), math.random(-3,3))
 	end
 
@@ -371,7 +342,6 @@ local function AutoShopping()
 	end
 
 	teleportFolder(shopItems)
-	print("Auto Shopping: Alle Shop Items wurden zum ItemChecker-Hitbox (mit Offset) teleportiert!")
 end
 
 FunctionsSection:AddButton({
@@ -382,12 +352,12 @@ FunctionsSection:AddButton({
 })
 
 ---------------------------------------------------------
--- ESP TAB – Sortiert nach Funktion
+-- ESP TAB – Sorted by Function
 ---------------------------------------------------------
 local espActive = false
 local espColor = Color3.fromRGB(255,255,255)
 
--- 1) Spieler ESP (Chams)
+-- 1) Player ESP (Chams)
 local function applyESPToCharacter(character)
 	local highlight = character:FindFirstChild("ChamHighlight")
 	if not highlight then
@@ -416,7 +386,9 @@ local function RemoveESP()
 	for _, p in pairs(Players:GetPlayers()) do
 		if p.Character then
 			local highlight = p.Character:FindFirstChild("ChamHighlight")
-			if highlight then highlight:Destroy() end
+			if highlight then
+				highlight:Destroy()
+			end
 		end
 	end
 end
@@ -481,7 +453,9 @@ local function RemoveNametags()
 	for _, p in pairs(Players:GetPlayers()) do
 		if p.Character and p.Character:FindFirstChild("Head") then
 			local tag = p.Character.Head:FindFirstChild("Nametag")
-			if tag then tag:Destroy() end
+			if tag then
+				tag:Destroy()
+			end
 		end
 	end
 end
@@ -499,7 +473,9 @@ local function UpdateNametags()
 				local frame = existing:FindFirstChildOfClass("Frame")
 				if frame then
 					local lbl = frame:FindFirstChildOfClass("TextLabel")
-					if lbl then lbl.TextColor3 = espColor end
+					if lbl then
+						lbl.TextColor3 = espColor
+					end
 				end
 			end
 		end
@@ -513,8 +489,8 @@ local function NametagsLoop()
 	end
 end
 
-local espSection = Tabs.ESP:AddSection("Spieler ESP")
-espSection:AddToggle("ESPToggle", { Title = "Spieler ESP (Chams)", Default = false })
+local espSection = Tabs.ESP:AddSection("Player ESP")
+espSection:AddToggle("ESPToggle", { Title = "Player ESP (Chams)", Default = false })
 	:OnChanged(function(state)
 		espActive = state
 		if state then
@@ -526,7 +502,7 @@ espSection:AddToggle("ESPToggle", { Title = "Spieler ESP (Chams)", Default = fal
 		end
 	end)
 
-espSection:AddColorpicker("ESPColor", { Title = "Spieler Farbe", Default = espColor })
+espSection:AddColorpicker("ESPColor", { Title = "Player Color", Default = espColor })
 	:OnChanged(function(c)
 		espColor = c
 	end)
@@ -647,7 +623,7 @@ itemESPSection:AddToggle("ItemESPToggle", { Title = "Item ESP", Default = false 
 		end
 	end)
 
-itemESPSection:AddColorpicker("ItemColor", { Title = "Item Farbe", Default = itemColor })
+itemESPSection:AddColorpicker("ItemColor", { Title = "Item Color", Default = itemColor })
 	:OnChanged(function(c)
 		itemColor = c
 	end)
@@ -755,7 +731,7 @@ enemyESPSection:AddToggle("EnemyESPToggle", { Title = "Enemy ESP", Default = fal
 		end
 	end)
 
-enemyESPSection:AddColorpicker("EnemyColor", { Title = "Enemy Farbe", Default = enemyColor })
+enemyESPSection:AddColorpicker("EnemyColor", { Title = "Enemy Color", Default = enemyColor })
 	:OnChanged(function(c)
 		enemyColor = c
 	end)
@@ -862,7 +838,7 @@ quotaCheckerSection:AddToggle("QuotaCheckerESPToggle", { Title = "QuotaChecker E
 		end
 	end)
 
-quotaCheckerSection:AddColorpicker("QuotaCheckerColor", { Title = "QuotaChecker Farbe", Default = quotaCheckerColor })
+quotaCheckerSection:AddColorpicker("QuotaCheckerColor", { Title = "QuotaChecker Color", Default = quotaCheckerColor })
 	:OnChanged(function(c)
 		quotaCheckerColor = c
 	end)
@@ -877,7 +853,7 @@ InfoSection:AddParagraph({
 })
 
 ---------------------------------------------------------
--- SETTINGS, SPEICHERN, LADEN
+-- SETTINGS, SAVE, LOAD
 ---------------------------------------------------------
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
@@ -889,9 +865,4 @@ InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 SaveManager:LoadAutoloadConfig()
 
-Fluent:Notify({
-	Title = "ERPO Script",
-	Content = "Script Loaded!",
-	Duration = 5
-})
 Window:SelectTab(1)
