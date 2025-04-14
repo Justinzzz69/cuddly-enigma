@@ -229,6 +229,7 @@ local function UpdateSkeletonESP(player)
 end
 
 Players.PlayerRemoving:Connect(function(player)
+	-- Entferne SkeletonESP des Spielers
 	if SkeletonESPs[player] then
 		for _, line in ipairs(SkeletonESPs[player]) do
 			line:Remove()
@@ -630,6 +631,18 @@ Players.PlayerAdded:Connect(function(plr)
 			Title = plr.Name,
 			Callback = function() SpectatePlayer(plr) end
 		})
+	end
+end)
+
+-- Entferne Teleport- und Spectate-Buttons, wenn ein Spieler den Server verlässt
+Players.PlayerRemoving:Connect(function(plr)
+	if teleportButtons[plr.UserId] then
+		teleportButtons[plr.UserId]:Remove()
+		teleportButtons[plr.UserId] = nil
+	end
+	if spectateButtons[plr.UserId] then
+		spectateButtons[plr.UserId]:Remove()
+		spectateButtons[plr.UserId] = nil
 	end
 end)
 
