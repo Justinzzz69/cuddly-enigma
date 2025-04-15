@@ -39,7 +39,7 @@ local Window = Fluent:CreateWindow({
 
 local Tabs = {
 	Player   = Window:AddTab({ Title = "Player",   Icon = "user" }),
-	Chams    = Window:AddTab({ Title = "ESP",    Icon = "eye" }),
+	Chams    = Window:AddTab({ Title = "ESP",      Icon = "eye" }),
 	Voice    = Window:AddTab({ Title = "Voice",    Icon = "mic" }),
 	Teleport = Window:AddTab({ Title = "Teleport", Icon = "map" }),
 	Spectate = Window:AddTab({ Title = "Spectate", Icon = "camera" }),
@@ -249,9 +249,9 @@ RunService.RenderStepped:Connect(function()
 end)
 
 ---------------------------------------------------------
--- Tab: Player
+-- Tab: Player (Speed, Fly, Noclip, Anti AFK)
 ---------------------------------------------------------
-local PlayerSection = Tabs.Player:AddSection("Speed, Fly")
+local PlayerSection = Tabs.Player:AddSection("Speed, Fly, Noclip")
 PlayerSection:AddSlider("SpeedSlider", {
 	Title = "Walk Speed",
 	Default = 16,
@@ -281,6 +281,39 @@ PlayerSection:AddSlider("FlySpeedSlider", {
 }):OnChanged(function(value)
 	flySpeed = value
 end)
+
+-- Noclip Toggle im Player-Tab
+local noclipConnection
+PlayerSection:AddToggle("NoclipToggle", { Title = "Noclip", Default = false })
+	:OnChanged(function(state)
+		if state then
+			-- Noclip aktivieren: In jedem Stepped-Callback werden alle BaseParts auf CanCollide = false gesetzt
+			noclipConnection = RunService.Stepped:Connect(function()
+				local character = LocalPlayer.Character
+				if character then
+					for _, part in ipairs(character:GetDescendants()) do
+						if part:IsA("BasePart") then
+							part.CanCollide = false
+						end
+					end
+				end
+			end)
+		else
+			-- Noclip deaktivieren: Verbindung trennen und Kollisionen wieder aktivieren
+			if noclipConnection then
+				noclipConnection:Disconnect()
+				noclipConnection = nil
+			end
+			local character = LocalPlayer.Character
+			if character then
+				for _, part in ipairs(character:GetDescendants()) do
+					if part:IsA("BasePart") then
+						part.CanCollide = true
+					end
+				end
+			end
+		end
+	end)
 
 ---------------------------------------------------------
 -- Anti AFK
