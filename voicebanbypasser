@@ -10,7 +10,7 @@ local VoiceChatService = game:GetService("VoiceChatService")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Hilfsfunktion, um Movement wieder zu aktivieren (entankern, PlatformStand deaktivieren)
+-- Hilfsfunktion, um Movement wieder zu aktivieren (Entankern, PlatformStand deaktivieren)
 local function reEnableMovement()
 	local char = LocalPlayer.Character
 	if char then
@@ -38,7 +38,7 @@ LocalPlayer.CharacterAdded:Connect(function(character)
 	end
 end)
 
--- Acrylic false, damit kein Blur erzeugt wird
+-- Fenster-Einstellungen
 local Window = Fluent:CreateWindow({
 	Title = "Voice Ban Bypasser",
 	SubTitle = "",
@@ -70,9 +70,8 @@ local function getRootPart(character)
 	-- Versuche zuerst R15 ("HumanoidRootPart"), sonst R6 ("Torso")
 	local root = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
 	if not root then
-		local success
-		success, root = pcall(function()
-			return character:WaitForChild("HumanoidRootPart", 5)
+		pcall(function()
+			root = character:WaitForChild("HumanoidRootPart", 5)
 		end)
 	end
 	return root
@@ -112,10 +111,10 @@ local function enableFly()
 				dir = dir + Workspace.CurrentCamera.CFrame.RightVector
 			end
 			if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-				dir = dir + Vector3.new(0,1,0)
+				dir = dir + Vector3.new(0, 1, 0)
 			end
 			if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-				dir = dir - Vector3.new(0,1,0)
+				dir = dir - Vector3.new(0, 1, 0)
 			end
 
 			if dir.Magnitude > 0 then
@@ -169,11 +168,7 @@ end
 ---------------------------------------------------------
 local function TeleportToPlayer(targetPlayer)
 	local localChar = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-	-- Prüfe, ob der Ziel-Character existiert, ansonsten warte kurz (max. 5 Sekunden)
-	local targetChar = targetPlayer.Character
-	if not targetChar then
-		targetChar = targetPlayer.CharacterAdded:Wait()
-	end
+	local targetChar = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
 	if not targetChar then
 		warn("Teleportation fehlgeschlagen, der Spieler " .. targetPlayer.Name .. " hat noch keinen Character.")
 		return
@@ -194,11 +189,7 @@ end
 -- Spectate-Funktionen (wartet auf vollständigen Character)
 ---------------------------------------------------------
 local function SpectatePlayer(targetPlayer)
-	-- Prüfe, ob der Ziel-Character existiert, ansonsten warte (max. 5 Sekunden)
-	local targetChar = targetPlayer.Character
-	if not targetChar then
-		targetChar = targetPlayer.CharacterAdded:Wait()
-	end
+	local targetChar = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
 	if not targetChar then
 		warn("Spectate fehlgeschlagen, der Spieler " .. targetPlayer.Name .. " hat noch keinen Character.")
 		return
@@ -290,7 +281,6 @@ local function UpdateSkeletonESP(player)
 end
 
 Players.PlayerRemoving:Connect(function(player)
-	-- Entferne SkeletonESP des Spielers
 	if SkeletonESPs[player] then
 		for _, line in ipairs(SkeletonESPs[player]) do
 			line:Remove()
@@ -391,33 +381,54 @@ AntiAFKSection:AddToggle("AntiAFKToggle", { Title = "Anti AFK", Default = false 
 local chamsActive = false
 local chamsColor = Color3.fromRGB(255, 255, 255)
 
--- Funktion, um für ein Character-Objekt die Chams anzubringen
+-- Diese Funktion wendet die Chams (Highlight) auf einen Character an.
 local function applyChamsToCharacter(character)
-	local highlight = character:FindFirstChild("ChamHighlight")
-	if not highlight then
-		highlight = Instance.new("Highlight")
-		highlight.Name = "ChamHighlight"
-		highlight.FillColor = chamsColor
-		highlight.OutlineColor = chamsColor
-		highlight.FillTransparency = 0.5
-		highlight.OutlineTransparency = 0
-		highlight.Parent = character
-	else
-		highlight.FillColor = chamsColor
-		highlight.OutlineColor = chamsColor
+	-- Debug: Gib den Namen des Characters aus
+	print("applyChamsToCharacter aufgerufen für: " .. (character.Name or "unbekannt"))
+	
+	-- Warte nur 0,1 Sekunden statt 1, damit die Chams schneller angewendet werden
+	task.wait(0.1)
+	
+	-- Überprüfe, ob der Character existiert und im Spiel ist
+	if not character or not character:IsDescendantOf(game) then
+		print("Character fehlt oder nicht im Spiel: " .. (character.Name or "unbekannt"))
+		return
+	end
+	
+	-- Versuche, das Highlight zu erstellen/aktualisieren
+	local success, err = pcall(function()
+		local highlight = character:FindFirstChild("ChamHighlight")
+		if not highlight then
+			print("Erstelle neuen Highlight für: " .. character.Name)
+			highlight = Instance.new("Highlight")
+			highlight.Name = "ChamHighlight"
+			highlight.Adornee = character
+			highlight.FillColor = chamsColor
+			highlight.OutlineColor = chamsColor
+			highlight.FillTransparency = 0.5
+			highlight.OutlineTransparency = 0
+			highlight.Parent = character
+		else
+			print("Aktualisiere bestehenden Highlight für: " .. character.Name)
+			highlight.Adornee = character
+			highlight.FillColor = chamsColor
+			highlight.OutlineColor = chamsColor
+		end
+	end)
+	if not success then
+		warn("Fehler beim Anwenden der Chams auf " .. character.Name .. ": " .. tostring(err))
 	end
 end
 
--- Update-Funktion: Geht alle Spieler durch und wendet Chams an (sofern vorhanden)
 local function UpdateChams()
 	for _, p in pairs(Players:GetPlayers()) do
+		-- Falls du dich selbst auch markieren möchtest, entferne die folgende Bedingung
 		if p ~= LocalPlayer and p.Character then
 			applyChamsToCharacter(p.Character)
 		end
 	end
 end
 
--- Entfernt vorhandene Chams von allen Spielern
 local function RemoveChams()
 	for _, p in pairs(Players:GetPlayers()) do
 		if p.Character then
@@ -433,14 +444,15 @@ local chamsTask
 local function chamsLoop()
 	while chamsActive do
 		UpdateChams()
-		task.wait(2)
+		task.wait(0.5)
 	end
 end
 
--- Für alle bereits vorhandenen Spieler (außer LocalPlayer) sowie neu hinzugefügte Spieler den CharacterAdded-Event verbinden
+-- Für bereits vorhandene Spieler sowie neu hinzugefügte Spieler:
 for _, p in pairs(Players:GetPlayers()) do
 	if p ~= LocalPlayer then
 		p.CharacterAdded:Connect(function(character)
+			task.wait(0.1)
 			if chamsActive then
 				applyChamsToCharacter(character)
 			end
@@ -451,6 +463,7 @@ end
 Players.PlayerAdded:Connect(function(p)
 	if p ~= LocalPlayer then
 		p.CharacterAdded:Connect(function(character)
+			task.wait(0.1)
 			if chamsActive then
 				applyChamsToCharacter(character)
 			end
@@ -654,7 +667,6 @@ VoiceSection:AddToggle("AutoVoiceJoinToggle", { Title = "Auto Voice Join (experi
 local TeleportSection = Tabs.Teleport:AddSection("Teleport Players")
 local teleportButtons = {}
 
--- Für bereits vorhandene Spieler
 for _, plr in pairs(Players:GetPlayers()) do
 	if plr ~= LocalPlayer and not teleportButtons[plr.UserId] then
 		teleportButtons[plr.UserId] = TeleportSection:AddButton({
@@ -704,7 +716,6 @@ Players.PlayerAdded:Connect(function(plr)
 	end
 end)
 
--- Entferne Teleport- und Spectate-Buttons, wenn ein Spieler den Server verlässt
 Players.PlayerRemoving:Connect(function(plr)
 	if teleportButtons[plr.UserId] then
 		teleportButtons[plr.UserId]:Remove()
@@ -720,9 +731,11 @@ end)
 -- Tab: Info
 ---------------------------------------------------------
 local InfoSection = Tabs.Info:AddSection("Info")
+-- Hier wurde der Info-Text angepasst, damit er besser sichtbar ist – inklusive deines Discord-Servers:
 InfoSection:AddParagraph({
 	Title = "Info",
-	Content = "Made by Tapetenputzer\nDiscord: tapetenputzer"
+	Content = "★ Made by Tapetenputzer ★\n\nDiscord: tapetenputzer\nDiscord Server: https://discord.gg/2xDHnGg6cJ"
+	-- Falls das Framework zusätzliche Parameter für Textgröße oder Farbe unterstützt, können hier noch welche ergänzt werden.
 })
 
 ---------------------------------------------------------
