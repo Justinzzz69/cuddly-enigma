@@ -1,0 +1,559 @@
+--------------------------------------------------------------------------------
+-- LocalScript: Komplette Spieler-GUI mit Suchfunktion, Detail-Pop-up, Settings,
+-- Draggen, Toggle-Key und einem Stop Spectate Button
+--------------------------------------------------------------------------------
+
+-------------------------------------
+-- Dienste abrufen
+-------------------------------------
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local localPlayer = Players.LocalPlayer
+
+-------------------------------------
+-- Variablen für Settings
+-------------------------------------
+local currentMenuColor = Color3.fromRGB(34, 34, 34) -- Standardfarbe für MainFrame
+local currentTitleColor = Color3.fromRGB(44, 44, 44) -- Farbe für die Titelleiste
+local toggleKey = Enum.KeyCode.F -- Standard Toggle-Key
+
+-------------------------------------
+-- ScreenGui erstellen
+-------------------------------------
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "PlayerListGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+
+-------------------------------------
+-- Hauptfenster (MainFrame) erstellen
+-------------------------------------
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 400, 0, 500)
+mainFrame.Position = UDim2.new(0, 20, 0, 100)
+mainFrame.BackgroundColor3 = currentMenuColor
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true     -- Für Draggen
+mainFrame.Selectable = true
+mainFrame.Parent = screenGui
+
+-- Titelleiste im MainFrame
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "TitleLabel"
+titleLabel.Size = UDim2.new(1, -80, 0, 40)  -- Platz für Close und Settings
+titleLabel.Position = UDim2.new(0, 0, 0, 0)
+titleLabel.BackgroundColor3 = currentTitleColor
+titleLabel.BorderSizePixel = 0
+titleLabel.Text = "Spielerliste"
+titleLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
+titleLabel.TextSize = 20
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.Parent = mainFrame
+
+-- Close-Button im MainFrame
+local closeButton = Instance.new("TextButton")
+closeButton.Name = "CloseButton"
+closeButton.Size = UDim2.new(0, 30, 0, 30)
+closeButton.Position = UDim2.new(1, -35, 0, 5)
+closeButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+closeButton.Text = "X"
+closeButton.Font = Enum.Font.SourceSansBold
+closeButton.TextSize = 20
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.Parent = mainFrame
+
+closeButton.MouseButton1Click:Connect(function()
+    screenGui.Enabled = false
+end)
+
+-- Settings-Button im MainFrame (neben Close)
+local settingsButton = Instance.new("TextButton")
+settingsButton.Name = "SettingsButton"
+settingsButton.Size = UDim2.new(0, 30, 0, 30)
+settingsButton.Position = UDim2.new(1, -70, 0, 5)
+settingsButton.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+settingsButton.Text = "⚙"
+settingsButton.Font = Enum.Font.SourceSansBold
+settingsButton.TextSize = 20
+settingsButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+settingsButton.Parent = mainFrame
+
+-- Suchfeld im MainFrame
+local searchBox = Instance.new("TextBox")
+searchBox.Name = "SearchBox"
+searchBox.Size = UDim2.new(1, -20, 0, 30)
+searchBox.Position = UDim2.new(0, 10, 0, 50)
+searchBox.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+searchBox.BorderSizePixel = 0
+searchBox.Text = ""
+searchBox.PlaceholderText = "Spieler suchen..."
+searchBox.TextColor3 = Color3.fromRGB(240, 240, 240)
+searchBox.Font = Enum.Font.SourceSans
+searchBox.TextSize = 16
+searchBox.ClearTextOnFocus = false
+searchBox.Parent = mainFrame
+
+-- ScrollingFrame für die Spielerliste
+local scrollingFrame = Instance.new("ScrollingFrame")
+scrollingFrame.Name = "PlayersScrollingFrame"
+scrollingFrame.Size = UDim2.new(1, 0, 1, -90)
+scrollingFrame.Position = UDim2.new(0, 0, 0, 90)
+scrollingFrame.BackgroundTransparency = 1
+scrollingFrame.ScrollBarThickness = 6
+scrollingFrame.Parent = mainFrame
+
+local uiListLayout = Instance.new("UIListLayout")
+uiListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+uiListLayout.Padding = UDim.new(0, 5)
+uiListLayout.Parent = scrollingFrame
+
+-------------------------------------
+-- Detail-Popup für Spielerfunktionen (initial unsichtbar)
+-------------------------------------
+local detailsFrame = Instance.new("Frame")
+detailsFrame.Name = "DetailsFrame"
+detailsFrame.Size = UDim2.new(0, 350, 0, 500)
+-- Zentriere das Detail-Popup:
+detailsFrame.Position = UDim2.new(0.5, -175, 0.5, -250)
+detailsFrame.BackgroundColor3 = currentMenuColor
+detailsFrame.BorderSizePixel = 0
+detailsFrame.Active = true    -- Für Draggen
+detailsFrame.Selectable = true
+detailsFrame.Visible = false
+detailsFrame.Parent = screenGui
+
+-- Titelleiste im Detail-Popup
+local detailTitle = Instance.new("TextLabel")
+detailTitle.Name = "DetailTitle"
+detailTitle.Size = UDim2.new(1, -40, 0, 40)
+detailTitle.Position = UDim2.new(0, 0, 0, 0)
+detailTitle.BackgroundColor3 = currentTitleColor
+detailTitle.BorderSizePixel = 0
+detailTitle.Text = "Spieler Details"
+detailTitle.TextColor3 = Color3.fromRGB(240, 240, 240)
+detailTitle.TextSize = 20
+detailTitle.Font = Enum.Font.SourceSansBold
+detailTitle.Parent = detailsFrame
+
+-- Back-Button im Detail-Popup
+local backButton = Instance.new("TextButton")
+backButton.Name = "BackButton"
+backButton.Size = UDim2.new(0, 30, 0, 30)
+backButton.Position = UDim2.new(1, -35, 0, 5)
+backButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+backButton.Text = "<"
+backButton.Font = Enum.Font.SourceSansBold
+backButton.TextSize = 20
+backButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+backButton.Parent = detailsFrame
+
+backButton.MouseButton1Click:Connect(function()
+    detailsFrame.Visible = false
+end)
+
+-- Container im Detail-Popup
+local detailContainer = Instance.new("Frame")
+detailContainer.Name = "DetailContainer"
+detailContainer.Size = UDim2.new(1, 0, 1, -50)
+detailContainer.Position = UDim2.new(0, 0, 0, 50)
+detailContainer.BackgroundTransparency = 1
+detailContainer.Parent = detailsFrame
+
+local detailInfo = Instance.new("TextLabel")
+detailInfo.Name = "DetailInfo"
+detailInfo.Size = UDim2.new(1, -20, 0, 80)
+detailInfo.Position = UDim2.new(0, 10, 0, 0)
+detailInfo.BackgroundTransparency = 1
+detailInfo.Text = ""
+detailInfo.TextColor3 = Color3.fromRGB(240, 240, 240)
+detailInfo.TextSize = 18
+detailInfo.Font = Enum.Font.SourceSans
+detailInfo.TextWrapped = true
+detailInfo.Parent = detailContainer
+
+local detailButtonFrame = Instance.new("Frame")
+detailButtonFrame.Name = "DetailButtonFrame"
+detailButtonFrame.Size = UDim2.new(1, -20, 1, -90)
+detailButtonFrame.Position = UDim2.new(0, 10, 0, 90)
+detailButtonFrame.BackgroundTransparency = 1
+detailButtonFrame.Parent = detailContainer
+
+local detailGrid = Instance.new("UIGridLayout")
+detailGrid.CellSize = UDim2.new(0, 150, 0, 40)
+detailGrid.CellPadding = UDim2.new(0, 10, 0, 10)
+detailGrid.Parent = detailButtonFrame
+
+-------------------------------------
+-- Settings-Popup erstellen (initial unsichtbar)
+-------------------------------------
+local settingsFrame = Instance.new("Frame")
+settingsFrame.Name = "SettingsFrame"
+settingsFrame.Size = UDim2.new(0, 300, 0, 300)
+settingsFrame.Position = UDim2.new(0.5, -150, 0.5, -150)
+settingsFrame.BackgroundColor3 = currentMenuColor
+settingsFrame.BorderSizePixel = 0
+settingsFrame.Active = true
+settingsFrame.Selectable = true
+settingsFrame.Visible = false
+settingsFrame.Parent = screenGui
+
+local settingsTitle = Instance.new("TextLabel")
+settingsTitle.Name = "SettingsTitle"
+settingsTitle.Size = UDim2.new(1, -40, 0, 40)
+settingsTitle.Position = UDim2.new(0, 0, 0, 0)
+settingsTitle.BackgroundColor3 = currentTitleColor
+settingsTitle.BorderSizePixel = 0
+settingsTitle.Text = "Einstellungen"
+settingsTitle.TextColor3 = Color3.fromRGB(240, 240, 240)
+settingsTitle.TextSize = 20
+settingsTitle.Font = Enum.Font.SourceSansBold
+settingsTitle.Parent = settingsFrame
+
+local settingsBackButton = Instance.new("TextButton")
+settingsBackButton.Name = "SettingsBackButton"
+settingsBackButton.Size = UDim2.new(0, 30, 0, 30)
+settingsBackButton.Position = UDim2.new(1, -35, 0, 5)
+settingsBackButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+settingsBackButton.Text = "<"
+settingsBackButton.Font = Enum.Font.SourceSansBold
+settingsBackButton.TextSize = 20
+settingsBackButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+settingsBackButton.Parent = settingsFrame
+
+settingsBackButton.MouseButton1Click:Connect(function()
+    settingsFrame.Visible = false
+end)
+
+-- Container in SettingsFrame
+local settingsContainer = Instance.new("Frame")
+settingsContainer.Name = "SettingsContainer"
+settingsContainer.Size = UDim2.new(1, 0, 1, -50)
+settingsContainer.Position = UDim2.new(0, 0, 0, 50)
+settingsContainer.BackgroundTransparency = 1
+settingsContainer.Parent = settingsFrame
+
+-- Toggle-Key Einstellung
+local toggleKeyLabel = Instance.new("TextLabel")
+toggleKeyLabel.Name = "ToggleKeyLabel"
+toggleKeyLabel.Size = UDim2.new(1, -20, 0, 30)
+toggleKeyLabel.Position = UDim2.new(0, 10, 0, 0)
+toggleKeyLabel.BackgroundTransparency = 1
+toggleKeyLabel.Text = "Toggle-Key (GUI ein-/ausblenden): " .. toggleKey.Name
+toggleKeyLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
+toggleKeyLabel.TextSize = 16
+toggleKeyLabel.Font = Enum.Font.SourceSans
+toggleKeyLabel.Parent = settingsContainer
+
+local toggleKeyBox = Instance.new("TextBox")
+toggleKeyBox.Name = "ToggleKeyBox"
+toggleKeyBox.Size = UDim2.new(1, -20, 0, 30)
+toggleKeyBox.Position = UDim2.new(0, 10, 0, 35)
+toggleKeyBox.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+toggleKeyBox.BorderSizePixel = 0
+toggleKeyBox.Text = ""
+toggleKeyBox.PlaceholderText = "Neuer Toggle-Key (Buchstabe)"
+toggleKeyBox.TextColor3 = Color3.fromRGB(240, 240, 240)
+toggleKeyBox.Font = Enum.Font.SourceSans
+toggleKeyBox.TextSize = 16
+toggleKeyBox.ClearTextOnFocus = false
+toggleKeyBox.Parent = settingsContainer
+
+local setToggleKeyButton = Instance.new("TextButton")
+setToggleKeyButton.Name = "SetToggleKeyButton"
+setToggleKeyButton.Size = UDim2.new(1, -20, 0, 30)
+setToggleKeyButton.Position = UDim2.new(0, 10, 0, 70)
+setToggleKeyButton.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+setToggleKeyButton.Text = "Toggle-Key ändern"
+setToggleKeyButton.Font = Enum.Font.SourceSansBold
+setToggleKeyButton.TextSize = 16
+setToggleKeyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+setToggleKeyButton.Parent = settingsContainer
+
+setToggleKeyButton.MouseButton1Click:Connect(function()
+    local newKey = toggleKeyBox.Text:upper()
+    if newKey and #newKey == 1 and Enum.KeyCode[newKey] then
+        toggleKey = Enum.KeyCode[newKey]
+        toggleKeyLabel.Text = "Toggle-Key (GUI ein-/ausblenden): " .. toggleKey.Name
+        print("Neuer Toggle-Key gesetzt: " .. toggleKey.Name)
+    else
+        print("Ungültiger Key!")
+    end
+end)
+
+-- Farbauswahl: Vordefinierte Farben
+local colorLabel = Instance.new("TextLabel")
+colorLabel.Name = "ColorLabel"
+colorLabel.Size = UDim2.new(1, -20, 0, 30)
+colorLabel.Position = UDim2.new(0, 10, 0, 110)
+colorLabel.BackgroundTransparency = 1
+colorLabel.Text = "Menüfarbe wählen:"
+colorLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
+colorLabel.TextSize = 16
+colorLabel.Font = Enum.Font.SourceSans
+colorLabel.Parent = settingsContainer
+
+local colorsFrame = Instance.new("Frame")
+colorsFrame.Name = "ColorsFrame"
+colorsFrame.Size = UDim2.new(1, -20, 0, 50)
+colorsFrame.Position = UDim2.new(0, 10, 0, 145)
+colorsFrame.BackgroundTransparency = 1
+colorsFrame.Parent = settingsContainer
+
+local presetColors = {
+    {Name = "Dark Gray", Color = Color3.fromRGB(34, 34, 34)},
+    {Name = "Blue", Color = Color3.fromRGB(30, 144, 255)},
+    {Name = "Green", Color = Color3.fromRGB(34, 139, 34)},
+    {Name = "Red", Color = Color3.fromRGB(178, 34, 34)},
+}
+
+for i, preset in ipairs(presetColors) do
+    local btn = Instance.new("TextButton")
+    btn.Name = preset.Name .. "Button"
+    btn.Size = UDim2.new(0, 80, 1, 0)
+    btn.Position = UDim2.new(0, (i-1) * 90, 0, 0)
+    btn.BackgroundColor3 = preset.Color
+    btn.Text = preset.Name
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 14
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Parent = colorsFrame
+
+    btn.MouseButton1Click:Connect(function()
+        currentMenuColor = preset.Color
+        mainFrame.BackgroundColor3 = currentMenuColor
+        detailsFrame.BackgroundColor3 = currentMenuColor
+        settingsFrame.BackgroundColor3 = currentMenuColor
+        print("Menüfarbe geändert zu: " .. preset.Name)
+    end)
+end
+
+-------------------------------------
+-- Settings-Button: Öffnet das Settings-Popup
+-------------------------------------
+settingsButton.MouseButton1Click:Connect(function()
+    settingsFrame.Visible = true
+end)
+
+-------------------------------------
+-- Funktionen für Aktionen (Beispiele)
+-------------------------------------
+local function flingTarget(targetPlr)
+    if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") then
+        targetPlr.Character.HumanoidRootPart.Velocity = Vector3.new(0, 200, 0)
+        print("Fling ausgeführt bei " .. targetPlr.Name)
+    else
+        print("Fling fehlgeschlagen.")
+    end
+end
+
+local function viewTarget(targetPlr)
+    if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("Head") then
+        workspace.CurrentCamera.CameraSubject = targetPlr.Character.Head
+        print("Kamera auf " .. targetPlr.Name .. " gesetzt.")
+    else
+        print("View fehlgeschlagen.")
+    end
+end
+
+local function focusTarget(targetPlr)
+    if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") then
+        workspace.CurrentCamera.CFrame = targetPlr.Character.HumanoidRootPart.CFrame * CFrame.new(0, 5, -10)
+        print("Fokus auf " .. targetPlr.Name .. " gesetzt.")
+    else
+        print("Focus fehlgeschlagen.")
+    end
+end
+
+local function doBang(targetPlr)
+    print("Bang bei " .. targetPlr.Name .. " (Beispiel).")
+end
+
+local function doStand(targetPlr)
+    print("Stand-Aktion bei " .. targetPlr.Name .. " (Beispiel).")
+end
+
+local function doHeadsit(targetPlr)
+    print("Headsit-Aktion bei " .. targetPlr.Name .. " (Beispiel).")
+end
+
+local function doDoggy(targetPlr)
+    print("Doggy-Aktion bei " .. targetPlr.Name .. " (Beispiel).")
+end
+
+local function doBackpack(targetPlr)
+    print("Backpack-Aktion bei " .. targetPlr.Name .. " (Beispiel).")
+end
+
+-- Funktion für Stop Spectate: Setzt die Kamera zurück zum lokalen Spieler
+local function stopSpectate()
+    if localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") then
+        workspace.CurrentCamera.CameraSubject = localPlayer.Character.Humanoid
+        print("Spectate gestoppt. Kamera zurückgesetzt.")
+    else
+        print("Stop Spectate fehlgeschlagen: Eigener Character/Humanoid fehlt.")
+    end
+end
+
+-------------------------------------
+-- Detail-Popup: Spielerinfos und Funktion-Buttons anzeigen
+-------------------------------------
+local function showPlayerDetails(player)
+    detailInfo.Text = "Name: " .. player.Name .. "\n" ..
+                      "UserID: " .. player.UserId .. "\n" ..
+                      "Display: " .. player.DisplayName .. "\n" ..
+                      "Account Age: " .. player.AccountAge
+    for _, btn in ipairs(detailButtonFrame:GetChildren()) do
+        if btn:IsA("TextButton") then btn:Destroy() end
+    end
+
+    local function createDetailButton(text, callback)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, 150, 0, 40)
+        btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        btn.BorderSizePixel = 0
+        btn.Text = text
+        btn.Font = Enum.Font.SourceSansBold
+        btn.TextSize = 18
+        btn.TextColor3 = Color3.fromRGB(240, 240, 240)
+        btn.MouseEnter:Connect(function()
+            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(90, 90, 90)}):Play()
+        end)
+        btn.MouseLeave:Connect(function()
+            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(70, 70, 70)}):Play()
+        end)
+        btn.MouseButton1Click:Connect(callback)
+        btn.Parent = detailButtonFrame
+    end
+
+    createDetailButton("Fling", function() flingTarget(player) end)
+    createDetailButton("View", function() viewTarget(player) end)
+    createDetailButton("Focus", function() focusTarget(player) end)
+    createDetailButton("Bang", function() doBang(player) end)
+    createDetailButton("Stand", function() doStand(player) end)
+    createDetailButton("Headsit", function() doHeadsit(player) end)
+    createDetailButton("Doggy", function() doDoggy(player) end)
+    createDetailButton("Backpack", function() doBackpack(player) end)
+    -- Neuer Button "Stop Spectate" im Detail-Popup:
+    createDetailButton("Stop Spectate", function() stopSpectate() end)
+    
+    detailsFrame.Visible = true
+end
+
+-------------------------------------
+-- Spieler-Eintrag erstellen: Jeder Spieler als Button in der Liste
+-------------------------------------
+local function createPlayerEntry(player)
+    local entry = Instance.new("TextButton")
+    entry.Name = player.Name .. "_Entry"
+    entry.Size = UDim2.new(1, -10, 0, 40)
+    entry.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    entry.BorderSizePixel = 0
+    entry.Text = player.Name
+    entry.Font = Enum.Font.SourceSansBold
+    entry.TextSize = 18
+    entry.TextColor3 = Color3.fromRGB(240, 240, 240)
+    entry.Parent = scrollingFrame
+
+    entry.MouseButton1Click:Connect(function()
+        showPlayerDetails(player)
+    end)
+end
+
+-------------------------------------
+-- Suchfunktion: Filtert Spieler anhand des Suchbegriffs
+-------------------------------------
+local function updateSearchFilter()
+    local query = string.lower(searchBox.Text)
+    for _, entry in ipairs(scrollingFrame:GetChildren()) do
+        if entry:IsA("TextButton") and entry.Name:match("^(.*)_Entry$") then
+            local pName = entry.Name:match("^(.*)_Entry$")
+            if query == "" or string.find(string.lower(pName), query) then
+                entry.Visible = true
+            else
+                entry.Visible = false
+            end
+        end
+    end
+end
+
+searchBox:GetPropertyChangedSignal("Text"):Connect(updateSearchFilter)
+
+-------------------------------------
+-- Initiale Befüllung der Spieler-Liste
+-------------------------------------
+for _, plr in ipairs(Players:GetPlayers()) do
+    createPlayerEntry(plr)
+end
+
+Players.PlayerAdded:Connect(function(newPlayer)
+    createPlayerEntry(newPlayer)
+end)
+
+Players.PlayerRemoving:Connect(function(removedPlayer)
+    local entry = scrollingFrame:FindFirstChild(removedPlayer.Name .. "_Entry")
+    if entry then
+        entry:Destroy()
+    end
+end)
+
+-------------------------------------
+-- Drag-Funktionalität für Fenster (MainFrame, DetailsFrame, SettingsFrame)
+-------------------------------------
+local function makeDraggable(frame)
+    local dragging = false
+    local dragInput, dragStart, startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+                                     startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+           input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or 
+           input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
+makeDraggable(mainFrame)
+makeDraggable(detailsFrame)
+makeDraggable(settingsFrame)
+
+-------------------------------------
+-- Toggle-Key: Schaltet die gesamte GUI ein/aus
+-------------------------------------
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == toggleKey then
+        screenGui.Enabled = not screenGui.Enabled
+    end
+end)
+
+-------------------------------------
+-- Fertig!
+-------------------------------------
