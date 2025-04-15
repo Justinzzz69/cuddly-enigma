@@ -26,6 +26,18 @@ local function reEnableMovement()
 	end
 end
 
+-- Beim Respawn wird die Kamera zurückgesetzt
+LocalPlayer.CharacterAdded:Connect(function(character)
+	-- Warte kurz, bis der Character vollständig geladen ist
+	task.wait(1)
+	local humanoid = character:WaitForChild("Humanoid", 5)
+	if humanoid then
+		Workspace.CurrentCamera.CameraSubject = humanoid
+		Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+		print("LocalPlayer respawned, Kamera zurückgesetzt.")
+	end
+end)
+
 -- Acrylic false, damit kein Blur erzeugt wird
 local Window = Fluent:CreateWindow({
 	Title = "Voice Ban Bypasser",
@@ -123,15 +135,56 @@ local function disableFly()
 end
 
 ---------------------------------------------------------
+-- Noclip-Funktionalität
+---------------------------------------------------------
+local noclipEnabled = false
+local noclipConnection
+
+local function enableNoclip()
+	noclipEnabled = true
+	noclipConnection = RunService.Stepped:Connect(function()
+		local character = LocalPlayer.Character
+		if character then
+			for _, part in ipairs(character:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = false
+				end
+			end
+		end
+	end)
+	print("Noclip aktiviert")
+end
+
+local function disableNoclip()
+	noclipEnabled = false
+	if noclipConnection then
+		noclipConnection:Disconnect()
+		noclipConnection = nil
+	end
+	print("Noclip deaktiviert")
+end
+
+---------------------------------------------------------
 -- Teleport-Funktion (wartet auf vollständigen Character)
 ---------------------------------------------------------
 local function TeleportToPlayer(targetPlayer)
 	local localChar = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-	local targetChar = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
+	-- Prüfe, ob der Ziel-Character existiert, ansonsten warte kurz (max. 5 Sekunden)
+	local targetChar = targetPlayer.Character
+	if not targetChar then
+		targetChar = targetPlayer.CharacterAdded:Wait()
+	end
+	if not targetChar then
+		warn("Teleportation fehlgeschlagen, der Spieler " .. targetPlayer.Name .. " hat noch keinen Character.")
+		return
+	end
+
 	local root = getRootPart(localChar)
 	local targetRoot = getRootPart(targetChar)
 	if root and targetRoot then
 		root.CFrame = targetRoot.CFrame
+		reEnableMovement()
+		print("Teleported zu " .. targetPlayer.Name)
 	else
 		warn("Teleportation fehlgeschlagen, kein Root-Part gefunden.")
 	end
@@ -141,7 +194,15 @@ end
 -- Spectate-Funktionen (wartet auf vollständigen Character)
 ---------------------------------------------------------
 local function SpectatePlayer(targetPlayer)
-	local targetChar = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
+	-- Prüfe, ob der Ziel-Character existiert, ansonsten warte (max. 5 Sekunden)
+	local targetChar = targetPlayer.Character
+	if not targetChar then
+		targetChar = targetPlayer.CharacterAdded:Wait()
+	end
+	if not targetChar then
+		warn("Spectate fehlgeschlagen, der Spieler " .. targetPlayer.Name .. " hat noch keinen Character.")
+		return
+	end
 	local humanoid = targetChar:FindFirstChild("Humanoid")
 	if humanoid then
 		Workspace.CurrentCamera.CameraSubject = humanoid
@@ -251,7 +312,7 @@ end)
 ---------------------------------------------------------
 -- Tab: Player
 ---------------------------------------------------------
-local PlayerSection = Tabs.Player:AddSection("Speed, Fly")
+local PlayerSection = Tabs.Player:AddSection("Speed, Fly, Noclip")
 PlayerSection:AddSlider("SpeedSlider", {
 	Title = "Walk Speed",
 	Default = 16,
@@ -281,6 +342,15 @@ PlayerSection:AddSlider("FlySpeedSlider", {
 }):OnChanged(function(value)
 	flySpeed = value
 end)
+
+PlayerSection:AddToggle("NoclipToggle", { Title = "Noclip", Default = false })
+	:OnChanged(function(state)
+		if state then
+			enableNoclip()
+		else
+			disableNoclip()
+		end
+	end)
 
 ---------------------------------------------------------
 -- Anti AFK
