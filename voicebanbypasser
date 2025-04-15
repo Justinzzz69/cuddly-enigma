@@ -256,7 +256,7 @@ PlayerSection:AddSlider("SpeedSlider", {
 	Title = "Walk Speed",
 	Default = 16,
 	Min = 0,
-	Max = 100,
+	Max = 150,
 	Rounding = 0
 }):OnChanged(function(value)
 	currentSpeed = value
