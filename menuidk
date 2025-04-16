@@ -18,37 +18,37 @@ local focusConnection = nil
 local originalRightShoulderC0 = nil
 
 local function toggleAntiInvisible(targetPlr)
-    if targetPlr and targetPlr.Character then
-        local active = false
-        for _, part in ipairs(targetPlr.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part:FindFirstChild("AntiInvisibleSelection") then
-                active = true
-                break
-            end
-        end
-        if active then
-            for _, part in ipairs(targetPlr.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    local selBox = part:FindFirstChild("AntiInvisibleSelection")
-                    if selBox then
-                        selBox:Destroy()
-                    end
-                end
-            end
-        else
-            for _, part in ipairs(targetPlr.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    local selBox = Instance.new("SelectionBox")
-                    selBox.Name = "AntiInvisibleSelection"
-                    selBox.Adornee = part
-                    selBox.LineThickness = 0.05
-                    selBox.SurfaceTransparency = 0.5
-                    selBox.Color3 = Color3.fromRGB(255,0,0)
-                    selBox.Parent = part
-                end
-            end
-        end
-    end
+	if targetPlr and targetPlr.Character then
+		local active = false
+		for _, part in ipairs(targetPlr.Character:GetDescendants()) do
+			if part:IsA("BasePart") and part:FindFirstChild("AntiInvisibleSelection") then
+				active = true
+				break
+			end
+		end
+		if active then
+			for _, part in ipairs(targetPlr.Character:GetDescendants()) do
+				if part:IsA("BasePart") then
+					local selBox = part:FindFirstChild("AntiInvisibleSelection")
+					if selBox then
+						selBox:Destroy()
+					end
+				end
+			end
+		else
+			for _, part in ipairs(targetPlr.Character:GetDescendants()) do
+				if part:IsA("BasePart") then
+					local selBox = Instance.new("SelectionBox")
+					selBox.Name = "AntiInvisibleSelection"
+					selBox.Adornee = part
+					selBox.LineThickness = 0.05
+					selBox.SurfaceTransparency = 0.5
+					selBox.Color3 = Color3.fromRGB(255,0,0)
+					selBox.Parent = part
+				end
+			end
+		end
+	end
 end
 
 local screenGui = Instance.new("ScreenGui")
@@ -99,13 +99,13 @@ messageOK.TextColor3 = Color3.fromRGB(255,255,255)
 messageOK.Parent = messageFrame
 
 messageOK.MouseButton1Click:Connect(function()
-    messageFrame:Destroy()
-    mainFrame.Visible = true
+	messageFrame:Destroy()
+	mainFrame.Visible = true
 end)
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0,500,0,600)
+mainFrame.Size = UDim2.new(0,400,0,500)
 mainFrame.Position = UDim2.new(0,30,0,120)
 mainFrame.BackgroundColor3 = currentMenuColor
 mainFrame.BorderSizePixel = 0
@@ -115,7 +115,7 @@ mainFrame.Visible = false
 mainFrame.Parent = screenGui
 
 messageFrame.Destroying:Connect(function()
-    mainFrame.Visible = true
+	mainFrame.Visible = true
 end)
 
 local titleLabel = Instance.new("TextLabel")
@@ -142,8 +142,8 @@ closeButton.TextColor3 = Color3.fromRGB(255,255,255)
 closeButton.Parent = mainFrame
 
 closeButton.MouseButton1Click:Connect(function()
-    screenGui.Enabled = false
-    manualClosed = true
+	screenGui.Enabled = false
+	manualClosed = true
 end)
 
 local settingsButton = Instance.new("TextButton")
@@ -220,7 +220,7 @@ backButton.TextColor3 = Color3.fromRGB(255,255,255)
 backButton.Parent = detailsFrame
 
 backButton.MouseButton1Click:Connect(function()
-    detailsFrame.Visible = false
+	detailsFrame.Visible = false
 end)
 
 local detailContainer = Instance.new("Frame")
@@ -309,8 +309,8 @@ settingsBackButton.TextColor3 = Color3.fromRGB(255,255,255)
 settingsBackButton.Parent = settingsFrame
 
 settingsBackButton.MouseButton1Click:Connect(function()
-    settingsFrame.Visible = false
-    manualClosed = false
+	settingsFrame.Visible = false
+	manualClosed = false
 end)
 
 local settingsContainer = Instance.new("Frame")
@@ -357,11 +357,11 @@ setToggleKeyButton.TextColor3 = Color3.fromRGB(255,255,255)
 setToggleKeyButton.Parent = settingsContainer
 
 setToggleKeyButton.MouseButton1Click:Connect(function()
-    local newKey = toggleKeyBox.Text:upper()
-    if newKey and #newKey == 1 and Enum.KeyCode[newKey] then
-        toggleKey = Enum.KeyCode[newKey]
-        toggleKeyLabel.Text = "Toggle-Key (Show/Hide): " .. toggleKey.Name
-    end
+	local newKey = toggleKeyBox.Text:upper()
+	if newKey and #newKey == 1 and Enum.KeyCode[newKey] then
+		toggleKey = Enum.KeyCode[newKey]
+		toggleKeyLabel.Text = "Toggle-Key (Show/Hide): " .. toggleKey.Name
+	end
 end)
 
 local colorLabel = Instance.new("TextLabel")
@@ -383,448 +383,437 @@ colorsFrame.BackgroundTransparency = 1
 colorsFrame.Parent = settingsContainer
 
 local presetColors = {
-    {Name = "Dark Gray", Color = Color3.fromRGB(34,34,34)},
-    {Name = "Blue", Color = Color3.fromRGB(30,144,255)},
-    {Name = "Green", Color = Color3.fromRGB(34,139,34)},
-    {Name = "Red", Color = Color3.fromRGB(178,34,34)},
+	{Name = "Dark Gray", Color = Color3.fromRGB(34,34,34)},
+	{Name = "Blue", Color = Color3.fromRGB(30,144,255)},
+	{Name = "Green", Color = Color3.fromRGB(34,139,34)},
+	{Name = "Red", Color = Color3.fromRGB(178,34,34)},
 }
 
 for i, preset in ipairs(presetColors) do
-    local btn = Instance.new("TextButton")
-    btn.Name = preset.Name .. "Button"
-    btn.Size = UDim2.new(0,100,1,0)
-    btn.Position = UDim2.new(0,(i-1)*110,0,0)
-    btn.BackgroundColor3 = preset.Color
-    btn.Text = preset.Name
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 20
-    btn.TextColor3 = Color3.fromRGB(255,255,255)
-    btn.Parent = colorsFrame
-
-    btn.MouseButton1Click:Connect(function()
-        currentMenuColor = preset.Color
-        mainFrame.BackgroundColor3 = currentMenuColor
-        detailsFrame.BackgroundColor3 = currentMenuColor
-        settingsFrame.BackgroundColor3 = currentMenuColor
-    end)
+	local btn = Instance.new("TextButton")
+	btn.Name = preset.Name .. "Button"
+	btn.Size = UDim2.new(0,100,1,0)
+	btn.Position = UDim2.new(0,(i-1)*110,0,0)
+	btn.BackgroundColor3 = preset.Color
+	btn.Text = preset.Name
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextSize = 20
+	btn.TextColor3 = Color3.fromRGB(255,255,255)
+	btn.Parent = colorsFrame
+	btn.MouseButton1Click:Connect(function()
+		currentMenuColor = preset.Color
+		mainFrame.BackgroundColor3 = currentMenuColor
+		detailsFrame.BackgroundColor3 = currentMenuColor
+		settingsFrame.BackgroundColor3 = currentMenuColor
+	end)
 end
 
 settingsButton.MouseButton1Click:Connect(function()
-    settingsFrame.Visible = true
-    manualClosed = false
+	settingsFrame.Visible = true
+	manualClosed = false
 end)
 
 local function teleportToTarget(targetPlr)
-    if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") and
-       localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local targetPos = targetPlr.Character.HumanoidRootPart.Position
-        localPlayer.Character:MoveTo(targetPos)
-    end
+	if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+		local targetPos = targetPlr.Character.HumanoidRootPart.Position
+		localPlayer.Character:MoveTo(targetPos)
+	end
 end
 
 local function viewTarget(targetPlr)
-    if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("Head") then
-        workspace.CurrentCamera.CameraSubject = targetPlr.Character.Head
-    end
+	if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("Head") then
+		workspace.CurrentCamera.CameraSubject = targetPlr.Character.Head
+	end
 end
 
 local function stopSpectateView()
-    if localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") then
-        workspace.CurrentCamera.CameraSubject = localPlayer.Character.Humanoid
-    end
+	if localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") then
+		workspace.CurrentCamera.CameraSubject = localPlayer.Character.Humanoid
+	end
 end
 
 local function toggleAntiInvisible(targetPlr)
-    if targetPlr and targetPlr.Character then
-        local active = false
-        for _, part in ipairs(targetPlr.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part:FindFirstChild("AntiInvisibleSelection") then
-                active = true
-                break
-            end
-        end
-        if active then
-            for _, part in ipairs(targetPlr.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    local selBox = part:FindFirstChild("AntiInvisibleSelection")
-                    if selBox then selBox:Destroy() end
-                end
-            end
-        else
-            for _, part in ipairs(targetPlr.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    local selBox = Instance.new("SelectionBox")
-                    selBox.Name = "AntiInvisibleSelection"
-                    selBox.Adornee = part
-                    selBox.LineThickness = 0.05
-                    selBox.SurfaceTransparency = 0.5
-                    selBox.Color3 = Color3.fromRGB(255,0,0)
-                    selBox.Parent = part
-                end
-            end
-        end
-    end
+	if targetPlr and targetPlr.Character then
+		local active = false
+		for _, part in ipairs(targetPlr.Character:GetDescendants()) do
+			if part:IsA("BasePart") and part:FindFirstChild("AntiInvisibleSelection") then
+				active = true
+				break
+			end
+		end
+		if active then
+			for _, part in ipairs(targetPlr.Character:GetDescendants()) do
+				if part:IsA("BasePart") then
+					local selBox = part:FindFirstChild("AntiInvisibleSelection")
+					if selBox then selBox:Destroy() end
+				end
+			end
+		else
+			for _, part in ipairs(targetPlr.Character:GetDescendants()) do
+				if part:IsA("BasePart") then
+					local selBox = Instance.new("SelectionBox")
+					selBox.Name = "AntiInvisibleSelection"
+					selBox.Adornee = part
+					selBox.LineThickness = 0.05
+					selBox.SurfaceTransparency = 0.5
+					selBox.Color3 = Color3.fromRGB(255,0,0)
+					selBox.Parent = part
+				end
+			end
+		end
+	end
 end
 
 local function doBang(targetPlr)
-    if not targetPlr or not targetPlr.Character or not targetPlr.Character:FindFirstChild("HumanoidRootPart") then return end
-    if bangConnection then
-        bangConnection:Disconnect()
-        bangConnection = nil
-    else
-        local startTime = tick()
-        bangConnection = RunService.Heartbeat:Connect(function()
-            if targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") and 
-               localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local targetHRP = targetPlr.Character.HumanoidRootPart
-                local lpHRP = localPlayer.Character.HumanoidRootPart
-                local tElapsed = tick() - startTime
-                local oscillation = math.sin(tElapsed * 30) * 2
-                local behindPos = targetHRP.Position - targetHRP.CFrame.LookVector * 3
-                local finalPos = behindPos + targetHRP.CFrame.LookVector * oscillation
-                lpHRP.CFrame = CFrame.new(finalPos, targetHRP.Position)
-            else
-                if bangConnection then
-                    bangConnection:Disconnect()
-                    bangConnection = nil
-                end
-            end
-        end)
-    end
+	if not targetPlr or not targetPlr.Character or not targetPlr.Character:FindFirstChild("HumanoidRootPart") then return end
+	if bangConnection then
+		bangConnection:Disconnect()
+		bangConnection = nil
+	else
+		local startTime = tick()
+		bangConnection = RunService.Heartbeat:Connect(function()
+			if targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+				local targetHRP = targetPlr.Character.HumanoidRootPart
+				local lpHRP = localPlayer.Character.HumanoidRootPart
+				local tElapsed = tick() - startTime
+				local oscillation = math.sin(tElapsed * 30) * 2
+				local behindPos = targetHRP.Position - targetHRP.CFrame.LookVector * 3
+				local finalPos = behindPos + targetHRP.CFrame.LookVector * oscillation
+				lpHRP.CFrame = CFrame.new(finalPos, targetHRP.Position)
+			else
+				if bangConnection then
+					bangConnection:Disconnect()
+					bangConnection = nil
+				end
+			end
+		end)
+	end
 end
 
 local function stopBang()
-    if bangConnection then
-        bangConnection:Disconnect()
-        bangConnection = nil
-        if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            localPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
-        end
-    end
+	if bangConnection then
+		bangConnection:Disconnect()
+		bangConnection = nil
+		if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+			localPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+		end
+	end
 end
 
 local function doBangV2(targetPlr)
-    if not targetPlr or not targetPlr.Character or not targetPlr.Character:FindFirstChild("HumanoidRootPart") then return end
-    if bangV2Connection then
-        bangV2Connection:Disconnect()
-        bangV2Connection = nil
-        if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            localPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
-        end
-    else
-        local targetHRP = targetPlr.Character.HumanoidRootPart
-        local myHRP = localPlayer.Character.HumanoidRootPart
-        local startTime = tick()
-        bangV2Connection = RunService.Heartbeat:Connect(function()
-            if targetPlr.Character and targetHRP then
-                local targetPos = targetHRP.Position
-                local targetLook = targetHRP.CFrame.LookVector
-                local desiredPos = targetPos - targetLook * 0.5
-                local oscillation = math.sin((tick()-startTime)*50) * 0.2
-                local finalPos = desiredPos + targetLook * oscillation
-                myHRP.CFrame = CFrame.new(finalPos, targetPos)
-            else
-                if bangV2Connection then
-                    bangV2Connection:Disconnect()
-                    bangV2Connection = nil
-                end
-            end
-        end)
-    end
+	if not targetPlr or not targetPlr.Character or not targetPlr.Character:FindFirstChild("HumanoidRootPart") then return end
+	if bangV2Connection then
+		bangV2Connection:Disconnect()
+		bangV2Connection = nil
+		if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+			localPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+		end
+	else
+		local targetHRP = targetPlr.Character.HumanoidRootPart
+		local myHRP = localPlayer.Character.HumanoidRootPart
+		local startTime = tick()
+		bangV2Connection = RunService.Heartbeat:Connect(function()
+			if targetPlr.Character and targetHRP then
+				local targetPos = targetHRP.Position
+				local targetLook = targetHRP.CFrame.LookVector
+				local desiredPos = targetPos - targetLook * 0.5
+				local oscillation = math.sin((tick()-startTime)*50) * 0.2
+				local finalPos = desiredPos + targetLook * oscillation
+				myHRP.CFrame = CFrame.new(finalPos, targetPos)
+			else
+				if bangV2Connection then
+					bangV2Connection:Disconnect()
+					bangV2Connection = nil
+				end
+			end
+		end)
+	end
 end
 
 local function doHeadsit(targetPlr)
-    if not targetPlr or not targetPlr.Character or not targetPlr.Character:FindFirstChild("Head") then return end
-    if headsitConnection then
-        headsitConnection:Disconnect()
-        headsitConnection = nil
-        if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            localPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
-        end
-    else
-        local targetHead = targetPlr.Character.Head
-        if localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") then
-            localPlayer.Character.Humanoid.Sit = true
-        end
-        headsitConnection = RunService.Heartbeat:Connect(function()
-            if targetPlr.Character and targetPlr.Character:FindFirstChild("Head") and 
-               localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local newCFrame = targetHead.CFrame * CFrame.new(0, targetHead.Size.Y/2, 0)
-                localPlayer.Character.HumanoidRootPart.CFrame = newCFrame
-            else
-                if headsitConnection then
-                    headsitConnection:Disconnect()
-                    headsitConnection = nil
-                end
-            end
-        end)
-    end
+	if not targetPlr or not targetPlr.Character or not targetPlr.Character:FindFirstChild("Head") then return end
+	if headsitConnection then
+		headsitConnection:Disconnect()
+		headsitConnection = nil
+		if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+			localPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+		end
+	else
+		local targetHead = targetPlr.Character.Head
+		if localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") then
+			localPlayer.Character.Humanoid.Sit = true
+		end
+		headsitConnection = RunService.Heartbeat:Connect(function()
+			if targetPlr.Character and targetPlr.Character:FindFirstChild("Head") and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+				local newCFrame = targetHead.CFrame * CFrame.new(0, targetHead.Size.Y/2, 0)
+				localPlayer.Character.HumanoidRootPart.CFrame = newCFrame
+			else
+				if headsitConnection then
+					headsitConnection:Disconnect()
+					headsitConnection = nil
+				end
+			end
+		end)
+	end
 end
 
 local function stopHeadsit()
-    if headsitConnection then
-        headsitConnection:Disconnect()
-        headsitConnection = nil
-        if localPlayer.Character then
-            local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then hrp.Velocity = Vector3.new(0,0,0) end
-            local hum = localPlayer.Character:FindFirstChild("Humanoid")
-            if hum then hum.Sit = false end
-        end
-    end
+	if headsitConnection then
+		headsitConnection:Disconnect()
+		headsitConnection = nil
+		if localPlayer.Character then
+			local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+			if hrp then hrp.Velocity = Vector3.new(0,0,0) end
+			local hum = localPlayer.Character:FindFirstChild("Humanoid")
+			if hum then hum.Sit = false end
+		end
+	end
 end
 
 local function doLookAtMe(targetPlr)
-    if not targetPlr or not targetPlr.Character or not targetPlr.Character:FindFirstChild("HumanoidRootPart") then return end
-    if lookAtMeConnection then
-        lookAtMeConnection:Disconnect()
-        lookAtMeConnection = nil
-        if localPlayer.Character and localPlayer.Character:FindFirstChild("Torso") and originalRightShoulderC0 then
-            localPlayer.Character.Torso:FindFirstChild("Right Shoulder").C0 = originalRightShoulderC0
-        end
-        if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            localPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
-        end
-    else
-        local targetHRP = targetPlr.Character.HumanoidRootPart
-        local character = localPlayer.Character
-        if not (character and character:FindFirstChild("HumanoidRootPart")) then return end
-        lookAtMeConnection = RunService.Heartbeat:Connect(function()
-            local targetPos = targetHRP.Position
-            local newPos = targetPos + targetHRP.CFrame.LookVector * 5
-            character.HumanoidRootPart.CFrame = CFrame.new(newPos, targetPos)
-        end)
-        local torso = character:FindFirstChild("Torso")
-        if torso then
-            local rightShoulder = torso:FindFirstChild("Right Shoulder")
-            if rightShoulder then
-                if not originalRightShoulderC0 then
-                    originalRightShoulderC0 = rightShoulder.C0
-                end
-                rightShoulder.C0 = CFrame.new(1.5,0.5,0) * CFrame.Angles(math.rad(-90),0,0)
-            end
-        end
-    end
+	if not targetPlr or not targetPlr.Character or not targetPlr.Character:FindFirstChild("HumanoidRootPart") then return end
+	if lookAtMeConnection then
+		lookAtMeConnection:Disconnect()
+		lookAtMeConnection = nil
+		if localPlayer.Character and localPlayer.Character:FindFirstChild("Torso") and originalRightShoulderC0 then
+			localPlayer.Character.Torso:FindFirstChild("Right Shoulder").C0 = originalRightShoulderC0
+		end
+		if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+			localPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+		end
+	else
+		local targetHRP = targetPlr.Character.HumanoidRootPart
+		local character = localPlayer.Character
+		if not (character and character:FindFirstChild("HumanoidRootPart")) then return end
+		lookAtMeConnection = RunService.Heartbeat:Connect(function()
+			local targetPos = targetHRP.Position
+			local newPos = targetPos + targetHRP.CFrame.LookVector * 5
+			character.HumanoidRootPart.CFrame = CFrame.new(newPos, targetPos)
+		end)
+		local torso = character:FindFirstChild("Torso")
+		if torso then
+			local rightShoulder = torso:FindFirstChild("Right Shoulder")
+			if rightShoulder then
+				if not originalRightShoulderC0 then
+					originalRightShoulderC0 = rightShoulder.C0
+				end
+				rightShoulder.C0 = CFrame.new(1.5,0.5,0) * CFrame.Angles(math.rad(-90),0,0)
+			end
+		end
+	end
 end
 
 local function doStepOnMe(targetPlr)
-    if not targetPlr or not targetPlr.Character or not targetPlr.Character:FindFirstChild("HumanoidRootPart") then return end
-    if stepOnMeConnection then
-        stepOnMeConnection:Disconnect()
-        stepOnMeConnection = nil
-        if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            localPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
-        end
-    else
-        local targetHRP = targetPlr.Character.HumanoidRootPart
-        local myHRP = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not myHRP then return end
-        local offsetY = 6
-        if localPlayer.Character:FindFirstChild("UpperTorso") then
-            offsetY = 3
-        end
-        stepOnMeConnection = RunService.Heartbeat:Connect(function()
-            if targetPlr.Character and targetHRP then
-                local targetPos = targetHRP.Position
-                local newPos = targetPos - Vector3.new(0, offsetY, 0)
-                local newCFrame = CFrame.new(newPos) * CFrame.Angles(math.rad(90),0,0)
-                myHRP.CFrame = newCFrame
-            else
-                if stepOnMeConnection then
-                    stepOnMeConnection:Disconnect()
-                    stepOnMeConnection = nil
-                end
-            end
-        end)
-    end
+	if not targetPlr or not targetPlr.Character or not targetPlr.Character:FindFirstChild("HumanoidRootPart") then return end
+	if stepOnMeConnection then
+		stepOnMeConnection:Disconnect()
+		stepOnMeConnection = nil
+		if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+			localPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+		end
+	else
+		local targetHRP = targetPlr.Character.HumanoidRootPart
+		local myHRP = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+		if not myHRP then return end
+		local offsetY = 6
+		if localPlayer.Character:FindFirstChild("UpperTorso") then
+			offsetY = 3
+		end
+		stepOnMeConnection = RunService.Heartbeat:Connect(function()
+			if targetPlr.Character and targetHRP then
+				local targetPos = targetHRP.Position
+				local newPos = targetPos - Vector3.new(0, offsetY, 0)
+				local newCFrame = CFrame.new(newPos) * CFrame.Angles(math.rad(90),0,0)
+				myHRP.CFrame = newCFrame
+			else
+				if stepOnMeConnection then
+					stepOnMeConnection:Disconnect()
+					stepOnMeConnection = nil
+				end
+			end
+		end)
+	end
 end
 
 local function doDoggy(targetPlr)
-    if not targetPlr or not targetPlr.Character or not targetPlr.Character:FindFirstChild("HumanoidRootPart") or 
-       not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-    local targetHRP = targetPlr.Character.HumanoidRootPart
-    local myHRP = localPlayer.Character.HumanoidRootPart
-    local newPos = targetHRP.Position - Vector3.new(0,3,0)
-    local newCFrame = CFrame.new(newPos, targetHRP.Position)
-    myHRP.CFrame = newCFrame
+	if not targetPlr or not targetPlr.Character or not targetPlr.Character:FindFirstChild("HumanoidRootPart") or not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+	local targetHRP = targetPlr.Character.HumanoidRootPart
+	local myHRP = localPlayer.Character.HumanoidRootPart
+	local newPos = targetHRP.Position - Vector3.new(0,3,0)
+	local newCFrame = CFrame.new(newPos, targetHRP.Position)
+	myHRP.CFrame = newCFrame
 end
 
 local function stopSpectate()
-    if bangConnection then
-        bangConnection:Disconnect()
-        bangConnection = nil
-    end
-    if bangV2Connection then
-        bangV2Connection:Disconnect()
-        bangV2Connection = nil
-    end
-    if headsitConnection then
-        headsitConnection:Disconnect()
-        headsitConnection = nil
-    end
-    if lookAtMeConnection then
-        lookAtMeConnection:Disconnect()
-        lookAtMeConnection = nil
-    end
-    if stepOnMeConnection then
-        stepOnMeConnection:Disconnect()
-        stepOnMeConnection = nil
-    end
-    if localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") then
-        workspace.CurrentCamera.CameraSubject = localPlayer.Character.Humanoid
-    end
+	if bangConnection then
+		bangConnection:Disconnect()
+		bangConnection = nil
+	end
+	if bangV2Connection then
+		bangV2Connection:Disconnect()
+		bangV2Connection = nil
+	end
+	if headsitConnection then
+		headsitConnection:Disconnect()
+		headsitConnection = nil
+	end
+	if lookAtMeConnection then
+		lookAtMeConnection:Disconnect()
+		lookAtMeConnection = nil
+	end
+	if stepOnMeConnection then
+		stepOnMeConnection:Disconnect()
+		stepOnMeConnection = nil
+	end
+	if localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") then
+		workspace.CurrentCamera.CameraSubject = localPlayer.Character.Humanoid
+	end
 end
 
 local function createDetailButton(text, startCallback, stopCallback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0,180,0,50)
-    btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
-    btn.BorderSizePixel = 0
-    btn.Text = text
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 22
-    btn.TextColor3 = Color3.fromRGB(240,240,240)
-    btn.MouseEnter:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(90,90,90)}):Play()
-    end)
-    btn.MouseLeave:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(70,70,70)}):Play()
-    end)
-    if stopCallback then
-        local toggled = false
-        local originalText = text
-        btn.MouseButton1Click:Connect(function()
-            if not toggled then
-                startCallback()
-                toggled = true
-                btn.Text = "Stop"
-            else
-                stopCallback()
-                toggled = false
-                btn.Text = originalText
-            end
-        end)
-    else
-        btn.MouseButton1Click:Connect(startCallback)
-    end
-    btn.Parent = detailButtonFrame
-    return btn
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0,180,0,50)
+	btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+	btn.BorderSizePixel = 0
+	btn.Text = text
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextSize = 22
+	btn.TextColor3 = Color3.fromRGB(240,240,240)
+	btn.MouseEnter:Connect(function()
+		TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(90,90,90)}):Play()
+	end)
+	btn.MouseLeave:Connect(function()
+		TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(70,70,70)}):Play()
+	end)
+	if stopCallback then
+		local toggled = false
+		local originalText = text
+		btn.MouseButton1Click:Connect(function()
+			if not toggled then
+				startCallback()
+				toggled = true
+				btn.Text = "Stop"
+			else
+				stopCallback()
+				toggled = false
+				btn.Text = originalText
+			end
+		end)
+	else
+		btn.MouseButton1Click:Connect(startCallback)
+	end
+	btn.Parent = detailButtonFrame
+	return btn
 end
 
 local function showPlayerDetails(player)
-    local accountAge = player.AccountAge
-    local creationDate = os.date("%d.%m.%Y", os.time() - (accountAge * 24 * 3600))
-    detailInfo.Text = "Name: " .. player.Name ..
-        "\nUserID: " .. player.UserId ..
-        "\nDisplay: " .. player.DisplayName ..
-        "\nAccount Age: " .. accountAge .. " days" ..
-        "\nCreated: " .. creationDate
-
-    local success, thumbnailUrl = pcall(function()
-        return Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
-    end)
-    if success and thumbnailUrl then
-        playerImage.Image = thumbnailUrl
-    else
-        playerImage.Image = "rbxassetid://0"
-    end
-
-    for _, child in ipairs(detailButtonFrame:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:Destroy()
-        end
-    end
-
-    createDetailButton("Teleport", function() teleportToTarget(player) end)
-    createDetailButton("Spectate", function() viewTarget(player) end, function() stopSpectateView() end)
-    createDetailButton("Look At Me", function() doLookAtMe(player) end, function() doLookAtMe(player) end)
-    createDetailButton("Step On Me", function() doStepOnMe(player) end, function() doStepOnMe(player) end)
-    createDetailButton("Bang V2", function() doBangV2(player) end, function() doBangV2(player) end)
-    createDetailButton("Anti Invisible", function() toggleAntiInvisible(player) end, function() toggleAntiInvisible(player) end)
-    createDetailButton("Bang", function() doBang(player) end, function() stopBang() end)
-    createDetailButton("Headsit", function() doHeadsit(player) end, function() stopHeadsit() end)
-    
-    detailsFrame.Visible = true
+	local accountAge = player.AccountAge
+	local creationDate = os.date("%d.%m.%Y", os.time() - (accountAge * 24 * 3600))
+	detailInfo.Text = "Name: " .. player.Name ..
+		"\nUserID: " .. player.UserId ..
+		"\nDisplay: " .. player.DisplayName ..
+		"\nAccount Age: " .. accountAge .. " days" ..
+		"\nCreated: " .. creationDate
+	local success, thumbnailUrl = pcall(function()
+		return Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+	end)
+	if success and thumbnailUrl then
+		playerImage.Image = thumbnailUrl
+	else
+		playerImage.Image = "rbxassetid://0"
+	end
+	for _, child in ipairs(detailButtonFrame:GetChildren()) do
+		if child:IsA("TextButton") then
+			child:Destroy()
+		end
+	end
+	createDetailButton("Teleport", function() teleportToTarget(player) end)
+	createDetailButton("Spectate", function() viewTarget(player) end, function() stopSpectateView() end)
+	createDetailButton("Look At Me", function() doLookAtMe(player) end, function() doLookAtMe(player) end)
+	createDetailButton("Step On Me", function() doStepOnMe(player) end, function() doStepOnMe(player) end)
+	createDetailButton("Bang V2", function() doBangV2(player) end, function() doBangV2(player) end)
+	createDetailButton("Anti Invisible", function() toggleAntiInvisible(player) end, function() toggleAntiInvisible(player) end)
+	createDetailButton("Bang", function() doBang(player) end, function() stopBang() end)
+	createDetailButton("Headsit", function() doHeadsit(player) end, function() stopHeadsit() end)
+	detailsFrame.Visible = true
 end
 
 local function createPlayerEntry(player)
-    local entry = Instance.new("TextButton")
-    entry.Name = player.Name .. "_Entry"
-    entry.Size = UDim2.new(1,-10,0,50)
-    entry.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    entry.BorderSizePixel = 0
-    entry.Text = player.Name
-    entry.Font = Enum.Font.SourceSansBold
-    entry.TextSize = 22
-    entry.TextColor3 = Color3.fromRGB(240,240,240)
-    entry.Parent = scrollingFrame
-
-    entry.MouseButton1Click:Connect(function()
-        showPlayerDetails(player)
-    end)
+	local entry = Instance.new("TextButton")
+	entry.Name = player.Name .. "_Entry"
+	entry.Size = UDim2.new(1,-10,0,50)
+	entry.BackgroundColor3 = Color3.fromRGB(50,50,50)
+	entry.BorderSizePixel = 0
+	entry.Text = player.Name
+	entry.Font = Enum.Font.SourceSansBold
+	entry.TextSize = 22
+	entry.TextColor3 = Color3.fromRGB(240,240,240)
+	entry.Parent = scrollingFrame
+	entry.MouseButton1Click:Connect(function()
+		showPlayerDetails(player)
+	end)
 end
 
 local function updateSearchFilter()
-    local query = string.lower(searchBox.Text or "")
-    for _, entry in ipairs(scrollingFrame:GetChildren()) do
-        if entry:IsA("TextButton") and entry.Name:match("^(.*)_Entry$") then
-            local pName = entry.Name:match("^(.*)_Entry$")
-            if query == "" or string.find(string.lower(pName), query) then
-                entry.Visible = true
-            else
-                entry.Visible = false
-            end
-        end
-    end
+	local query = string.lower(searchBox.Text or "")
+	for _, entry in ipairs(scrollingFrame:GetChildren()) do
+		if entry:IsA("TextButton") and entry.Name:match("^(.*)_Entry$") then
+			local pName = entry.Name:match("^(.*)_Entry$")
+			if query == "" or string.find(string.lower(pName), query) then
+				entry.Visible = true
+			else
+				entry.Visible = false
+			end
+		end
+	end
 end
 
 searchBox:GetPropertyChangedSignal("Text"):Connect(updateSearchFilter)
 
 for _, plr in ipairs(Players:GetPlayers()) do
-    createPlayerEntry(plr)
+	createPlayerEntry(plr)
 end
 
 Players.PlayerAdded:Connect(function(newPlayer)
-    createPlayerEntry(newPlayer)
+	createPlayerEntry(newPlayer)
 end)
 
 Players.PlayerRemoving:Connect(function(removedPlayer)
-    local entry = scrollingFrame:FindFirstChild(removedPlayer.Name .. "_Entry")
-    if entry then
-        entry:Destroy()
-    end
+	local entry = scrollingFrame:FindFirstChild(removedPlayer.Name .. "_Entry")
+	if entry then
+		entry:Destroy()
+	end
 end)
 
 local function makeDraggable(frame)
-    local dragging = false
-    local dragInput, dragStart, startPos
-    local function update(input)
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
-                                     startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-    frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    frame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            update(input)
-        end
-    end)
+	local dragging = false
+	local dragInput, dragStart, startPos
+	local function update(input)
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+	frame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			update(input)
+		end
+	end)
 end
 
 makeDraggable(mainFrame)
@@ -832,9 +821,9 @@ makeDraggable(detailsFrame)
 makeDraggable(settingsFrame)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == toggleKey then
-        if not manualClosed then
-            screenGui.Enabled = not screenGui.Enabled
-        end
-    end
+	if not gameProcessed and input.KeyCode == toggleKey then
+		if not manualClosed then
+			screenGui.Enabled = not screenGui.Enabled
+		end
+	end
 end)
