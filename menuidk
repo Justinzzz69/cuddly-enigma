@@ -7,20 +7,20 @@ local RunService       = game:GetService("RunService")
 -- Local player
 local localPlayer = Players.LocalPlayer
 
--- UI colors and toggle key
-local menuBackgroundColor = Color3.fromRGB(34, 34, 34)
+-- Default‑Settings
+local menuWidth           = 400
+local menuHeight          = 500
 local titleBackgroundColor = Color3.fromRGB(44, 44, 44)
-local toggleKey = Enum.KeyCode.F
-local manualClosed = false
+local toggleKey            = Enum.KeyCode.F
+local manualClosed         = false
 
--- Connections for ongoing effects
+-- Connections für Effekte
 local bangConnection, bangV2Connection, headsitConnection, lookAtMeConnection, stepOnMeConnection
 
 --------------------------------------------------------------------------------
--- FUNCTION DEFINITIONS
+-- HILFSFUNKTIONEN
 --------------------------------------------------------------------------------
 
--- Teleport to target player
 local function teleportToTarget(player)
     if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -28,21 +28,18 @@ local function teleportToTarget(player)
     end
 end
 
--- Spectate: point camera at target player’s head
 local function spectatePlayer(player)
     if player and player.Character and player.Character:FindFirstChild("Head") then
         workspace.CurrentCamera.CameraSubject = player.Character.Head
     end
 end
 
--- Stop spectating: return camera to local player
 local function stopSpectate()
     if localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") then
         workspace.CurrentCamera.CameraSubject = localPlayer.Character.Humanoid
     end
 end
 
--- Toggle selection boxes on all BaseParts to make invisible players visible
 local function toggleAntiInvisible(player)
     if not (player and player.Character) then return end
     local hasBoxes = false
@@ -52,7 +49,6 @@ local function toggleAntiInvisible(player)
             break
         end
     end
-
     for _, part in ipairs(player.Character:GetDescendants()) do
         if part:IsA("BasePart") then
             local box = part:FindFirstChild("AntiInvisibleBox")
@@ -71,7 +67,6 @@ local function toggleAntiInvisible(player)
     end
 end
 
--- Bang (oscillate behind target)
 local function doBang(player)
     if bangConnection then
         bangConnection:Disconnect()
@@ -98,7 +93,6 @@ local function doBang(player)
     end
 end
 
--- Bang V2 (tiny oscillation close to target)
 local function doBangV2(player)
     if bangV2Connection then
         bangV2Connection:Disconnect()
@@ -127,7 +121,6 @@ local function doBangV2(player)
     end
 end
 
--- Headsit: sit on the target’s head
 local function doHeadsit(player)
     if headsitConnection then
         headsitConnection:Disconnect()
@@ -155,7 +148,6 @@ local function doHeadsit(player)
     end
 end
 
--- Look At Me: position yourself 5 studs in front of the target, facing them
 local function doLookAtMe(player)
     if lookAtMeConnection then
         lookAtMeConnection:Disconnect()
@@ -164,8 +156,8 @@ local function doLookAtMe(player)
         and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
 
         lookAtMeConnection = RunService.Heartbeat:Connect(function()
-            local targetHRP = player.Character:FindFirstChild("HumanoidRootPart")
-            local myHRP     = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+            local targetHRP = player.Character.HumanoidRootPart
+            local myHRP     = localPlayer.Character.HumanoidRootPart
             if not (targetHRP and myHRP) then
                 lookAtMeConnection:Disconnect()
                 lookAtMeConnection = nil
@@ -177,7 +169,6 @@ local function doLookAtMe(player)
     end
 end
 
--- Step On Me: position yourself directly under the target
 local function doStepOnMe(player)
     if stepOnMeConnection then
         stepOnMeConnection:Disconnect()
@@ -204,34 +195,23 @@ local function doStepOnMe(player)
     end
 end
 
--- Doggy: teleport directly behind the target
-local function doDoggy(player)
-    if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-       and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local tHRP = player.Character.HumanoidRootPart
-        local mHRP = localPlayer.Character.HumanoidRootPart
-        mHRP.CFrame = CFrame.new(tHRP.Position - Vector3.new(0, 3, 0), tHRP.Position)
-    end
-end
-
 --------------------------------------------------------------------------------
 -- GUI SETUP
 --------------------------------------------------------------------------------
 
--- Create ScreenGui
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "PlayerListGui"
+screenGui.Name         = "PlayerListGui"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+screenGui.Parent       = localPlayer:WaitForChild("PlayerGui")
 
 -- Notice Frame
 local noticeFrame = Instance.new("Frame")
-noticeFrame.Name               = "NoticeFrame"
-noticeFrame.Size               = UDim2.new(0, 350, 0, 250)
-noticeFrame.Position           = UDim2.new(0.5, -175, 0.5, -125)
-noticeFrame.BackgroundColor3   = menuBackgroundColor
-noticeFrame.BorderSizePixel    = 0
-noticeFrame.Parent             = screenGui
+noticeFrame.Name             = "NoticeFrame"
+noticeFrame.Size             = UDim2.new(0, 350, 0, 250)
+noticeFrame.Position         = UDim2.new(0.5, -175, 0.5, -125)
+noticeFrame.BackgroundColor3 = Color3.fromRGB(34,34,34)
+noticeFrame.BorderSizePixel  = 0
+noticeFrame.Parent           = screenGui
 
 local noticeTitle = Instance.new("TextLabel")
 noticeTitle.Name                = "NoticeTitle"
@@ -239,7 +219,7 @@ noticeTitle.Size                = UDim2.new(1, 0, 0, 60)
 noticeTitle.Position            = UDim2.new(0, 0, 0, 0)
 noticeTitle.BackgroundTransparency = 1
 noticeTitle.Text                = "Notice"
-noticeTitle.TextColor3          = Color3.fromRGB(240, 240, 240)
+noticeTitle.TextColor3          = Color3.fromRGB(240,240,240)
 noticeTitle.Font                = Enum.Font.SourceSansBold
 noticeTitle.TextSize            = 28
 noticeTitle.Parent              = noticeFrame
@@ -257,33 +237,32 @@ noticeText.TextWrapped           = true
 noticeText.Parent                = noticeFrame
 
 local noticeOK = Instance.new("TextButton")
-noticeOK.Name                    = "NoticeOK"
-noticeOK.Size                    = UDim2.new(0, 120, 0, 50)
-noticeOK.Position                = UDim2.new(0.5, -60, 1, -60)
-noticeOK.BackgroundColor3        = Color3.fromRGB(0, 120, 200)
-noticeOK.Text                    = "OK"
-noticeOK.Font                    = Enum.Font.SourceSansBold
-noticeOK.TextSize                = 24
-noticeOK.TextColor3              = Color3.fromRGB(255,255,255)
-noticeOK.Parent                  = noticeFrame
+noticeOK.Name             = "NoticeOK"
+noticeOK.Size             = UDim2.new(0, 120, 0, 50)
+noticeOK.Position         = UDim2.new(0.5, -60, 1, -60)
+noticeOK.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+noticeOK.Text             = "OK"
+noticeOK.Font             = Enum.Font.SourceSansBold
+noticeOK.TextSize         = 24
+noticeOK.TextColor3       = Color3.fromRGB(255,255,255)
+noticeOK.Parent           = noticeFrame
+
+-- Main Frame (Player List)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name             = "MainFrame"
+mainFrame.Size             = UDim2.new(0, menuWidth, 0, menuHeight)
+mainFrame.Position         = UDim2.new(0, 30, 0, 120)
+mainFrame.BackgroundColor3 = Color3.fromRGB(34,34,34)
+mainFrame.BorderSizePixel  = 0
+mainFrame.Active           = true
+mainFrame.Selectable       = true
+mainFrame.Visible          = false
+mainFrame.Parent           = screenGui
 
 noticeOK.MouseButton1Click:Connect(function()
     noticeFrame:Destroy()
     mainFrame.Visible = true
 end)
-
--- Main Frame (Player List)
-local mainFrame = Instance.new("Frame")
-mainFrame.Name               = "MainFrame"
-mainFrame.Size               = UDim2.new(0, 400, 0, 500)
-mainFrame.Position           = UDim2.new(0, 30, 0, 120)
-mainFrame.BackgroundColor3   = menuBackgroundColor
-mainFrame.BorderSizePixel    = 0
-mainFrame.Active             = true
-mainFrame.Selectable         = true
-mainFrame.Visible            = false
-mainFrame.Parent             = screenGui
-
 noticeFrame.Destroying:Connect(function()
     mainFrame.Visible = true
 end)
@@ -310,7 +289,6 @@ closeButton.Font                = Enum.Font.SourceSansBold
 closeButton.TextSize            = 28
 closeButton.TextColor3          = Color3.fromRGB(255,255,255)
 closeButton.Parent              = mainFrame
-
 closeButton.MouseButton1Click:Connect(function()
     screenGui.Enabled = false
     manualClosed = true
@@ -327,78 +305,222 @@ settingsButton.TextSize         = 28
 settingsButton.TextColor3       = Color3.fromRGB(255,255,255)
 settingsButton.Parent           = mainFrame
 
+-- Search Box & Player List
 local searchBox = Instance.new("TextBox")
-searchBox.Name                    = "SearchBox"
-searchBox.Size                    = UDim2.new(1, -20, 0, 40)
-searchBox.Position                = UDim2.new(0, 10, 0, 70)
-searchBox.BackgroundColor3        = Color3.fromRGB(55,55,55)
-searchBox.BorderSizePixel         = 0
-searchBox.PlaceholderText         = "Search player..."
-searchBox.TextColor3              = Color3.fromRGB(240,240,240)
-searchBox.Font                    = Enum.Font.SourceSans
-searchBox.TextSize                = 20
-searchBox.ClearTextOnFocus        = false
-searchBox.Parent                  = mainFrame
+searchBox.Name             = "SearchBox"
+searchBox.Size             = UDim2.new(1, -20, 0, 40)
+searchBox.Position         = UDim2.new(0, 10, 0, 70)
+searchBox.BackgroundColor3 = Color3.fromRGB(55,55,55)
+searchBox.BorderSizePixel  = 0
+searchBox.PlaceholderText  = "Search player..."
+searchBox.TextColor3       = Color3.fromRGB(240,240,240)
+searchBox.Font             = Enum.Font.SourceSans
+searchBox.TextSize         = 20
+searchBox.ClearTextOnFocus = false
+searchBox.Parent           = mainFrame
 
 local scrollingFrame = Instance.new("ScrollingFrame")
-scrollingFrame.Name                = "PlayersScrollingFrame"
-scrollingFrame.Size                = UDim2.new(1, 0, 1, -120)
-scrollingFrame.Position            = UDim2.new(0, 0, 0, 120)
+scrollingFrame.Name                  = "PlayersScrollingFrame"
+scrollingFrame.Size                  = UDim2.new(1, 0, 1, -120)
+scrollingFrame.Position              = UDim2.new(0, 0, 0, 120)
 scrollingFrame.BackgroundTransparency= 1
-scrollingFrame.ScrollBarThickness  = 8
-scrollingFrame.Parent              = mainFrame
+scrollingFrame.ScrollBarThickness    = 8
+scrollingFrame.Parent                = mainFrame
 
 local uiListLayout = Instance.new("UIListLayout")
-uiListLayout.Parent                = scrollingFrame
-uiListLayout.HorizontalAlignment   = Enum.HorizontalAlignment.Left
-uiListLayout.SortOrder             = Enum.SortOrder.LayoutOrder
-uiListLayout.Padding               = UDim.new(0, 8)
+uiListLayout.Parent              = scrollingFrame
+uiListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+uiListLayout.SortOrder           = Enum.SortOrder.LayoutOrder
+uiListLayout.Padding             = UDim.new(0, 8)
 
--- Details Frame
+--------------------------------------------------------------------------------
+-- SETTINGS FRAME
+--------------------------------------------------------------------------------
+
+local settingsFrame = Instance.new("Frame")
+settingsFrame.Name             = "SettingsFrame"
+settingsFrame.Size             = UDim2.new(0, 300, 0, 260)
+settingsFrame.Position         = UDim2.new(0.5, -150, 0.5, -130)
+settingsFrame.BackgroundColor3 = Color3.fromRGB(34,34,34)
+settingsFrame.BorderSizePixel  = 0
+settingsFrame.Visible          = false
+settingsFrame.Parent           = screenGui
+
+local settingsTitle = Instance.new("TextLabel")
+settingsTitle.Name             = "SettingsTitle"
+settingsTitle.Size             = UDim2.new(1, 0, 0, 40)
+settingsTitle.Position         = UDim2.new(0, 0, 0, 0)
+settingsTitle.BackgroundColor3 = titleBackgroundColor
+settingsTitle.Text             = "Einstellungen"
+settingsTitle.TextColor3       = Color3.fromRGB(240,240,240)
+settingsTitle.Font             = Enum.Font.SourceSansBold
+settingsTitle.TextSize         = 24
+settingsTitle.Parent           = settingsFrame
+
+-- Menü‑Breite
+local widthLabel = Instance.new("TextLabel")
+widthLabel.Name                = "WidthLabel"
+widthLabel.Size                = UDim2.new(1, -20, 0, 20)
+widthLabel.Position            = UDim2.new(0, 10, 0, 50)
+widthLabel.BackgroundTransparency = 1
+widthLabel.Text                = "Menü‑Breite (px):"
+widthLabel.TextColor3          = Color3.fromRGB(240,240,240)
+widthLabel.Font                = Enum.Font.SourceSans
+widthLabel.TextSize            = 18
+widthLabel.Parent              = settingsFrame
+
+local widthInput = Instance.new("TextBox")
+widthInput.Name             = "WidthInput"
+widthInput.Size             = UDim2.new(1, -20, 0, 25)
+widthInput.Position         = UDim2.new(0, 10, 0, 75)
+widthInput.BackgroundColor3 = Color3.fromRGB(55,55,55)
+widthInput.TextColor3       = Color3.fromRGB(240,240,240)
+widthInput.Font             = Enum.Font.SourceSans
+widthInput.TextSize         = 18
+widthInput.PlaceholderText  = "z.B. 400"
+widthInput.Text             = tostring(menuWidth)
+widthInput.Parent           = settingsFrame
+
+-- Menü‑Höhe
+local heightLabel = Instance.new("TextLabel")
+heightLabel.Name                = "HeightLabel"
+heightLabel.Size                = UDim2.new(1, -20, 0, 20)
+heightLabel.Position            = UDim2.new(0, 10, 0, 110)
+heightLabel.BackgroundTransparency = 1
+heightLabel.Text                = "Menü‑Höhe (px):"
+heightLabel.TextColor3          = Color3.fromRGB(240,240,240)
+heightLabel.Font                = Enum.Font.SourceSans
+heightLabel.TextSize            = 18
+heightLabel.Parent              = settingsFrame
+
+local heightInput = Instance.new("TextBox")
+heightInput.Name             = "HeightInput"
+heightInput.Size             = UDim2.new(1, -20, 0, 25)
+heightInput.Position         = UDim2.new(0, 10, 0, 135)
+heightInput.BackgroundColor3 = Color3.fromRGB(55,55,55)
+heightInput.TextColor3       = Color3.fromRGB(240,240,240)
+heightInput.Font             = Enum.Font.SourceSans
+heightInput.TextSize         = 18
+heightInput.PlaceholderText  = "z.B. 500"
+heightInput.Text             = tostring(menuHeight)
+heightInput.Parent           = settingsFrame
+
+-- Umschalt‑Taste
+local keyLabel = Instance.new("TextLabel")
+keyLabel.Name                = "KeyLabel"
+keyLabel.Size                = UDim2.new(1, -20, 0, 20)
+keyLabel.Position            = UDim2.new(0, 10, 0, 170)
+keyLabel.BackgroundTransparency = 1
+keyLabel.Text                = "Umschalt‑Taste (Name):"
+keyLabel.TextColor3          = Color3.fromRGB(240,240,240)
+keyLabel.Font                = Enum.Font.SourceSans
+keyLabel.TextSize            = 18
+keyLabel.Parent              = settingsFrame
+
+local keyInput = Instance.new("TextBox")
+keyInput.Name             = "KeyInput"
+keyInput.Size             = UDim2.new(1, -20, 0, 25)
+keyInput.Position         = UDim2.new(0, 10, 0, 195)
+keyInput.BackgroundColor3 = Color3.fromRGB(55,55,55)
+keyInput.TextColor3       = Color3.fromRGB(240,240,240)
+keyInput.Font             = Enum.Font.SourceSans
+keyInput.TextSize         = 18
+keyInput.PlaceholderText  = "z.B. F"
+keyInput.Text             = toggleKey.Name
+keyInput.Parent           = settingsFrame
+
+-- Speichern & Abbrechen Buttons etwas weiter unten
+local saveBtn = Instance.new("TextButton")
+saveBtn.Name             = "SaveButton"
+saveBtn.Size             = UDim2.new(0, 100, 0, 30)
+saveBtn.Position         = UDim2.new(0, 20, 1, -20)
+saveBtn.BackgroundColor3 = Color3.fromRGB(0,150,0)
+saveBtn.Text             = "Speichern"
+saveBtn.Font             = Enum.Font.SourceSansBold
+saveBtn.TextSize         = 20
+saveBtn.TextColor3       = Color3.fromRGB(255,255,255)
+saveBtn.Parent           = settingsFrame
+
+local cancelBtn = Instance.new("TextButton")
+cancelBtn.Name             = "CancelButton"
+cancelBtn.Size             = UDim2.new(0, 100, 0, 30)
+cancelBtn.Position         = UDim2.new(1, -120, 1, -20)
+cancelBtn.BackgroundColor3 = Color3.fromRGB(150,0,0)
+cancelBtn.Text             = "Abbrechen"
+cancelBtn.Font             = Enum.Font.SourceSansBold
+cancelBtn.TextSize         = 20
+cancelBtn.TextColor3       = Color3.fromRGB(255,255,255)
+cancelBtn.Parent           = settingsFrame
+
+-- Button‑Funktionen
+settingsButton.MouseButton1Click:Connect(function()
+    settingsFrame.Visible = true
+end)
+cancelBtn.MouseButton1Click:Connect(function()
+    settingsFrame.Visible = false
+end)
+saveBtn.MouseButton1Click:Connect(function()
+    local w = tonumber(widthInput.Text)
+    local h = tonumber(heightInput.Text)
+    local k = Enum.KeyCode[keyInput.Text:upper()]
+    if w and h and k then
+        menuWidth  = w
+        menuHeight = h
+        toggleKey  = k
+        mainFrame.Size = UDim2.new(0, menuWidth, 0, menuHeight)
+        settingsFrame.Visible = false
+    else
+        warn("Ungültige Eingabe in den Einstellungen")
+    end
+end)
+
+--------------------------------------------------------------------------------
+-- DETAILS FRAME
+--------------------------------------------------------------------------------
+
 local detailsFrame = Instance.new("Frame")
-detailsFrame.Name                = "DetailsFrame"
-detailsFrame.Size                = UDim2.new(0, 400, 0, 550)
-detailsFrame.Position            = UDim2.new(0.5, -200, 0.5, -275)
-detailsFrame.BackgroundColor3    = menuBackgroundColor
-detailsFrame.BorderSizePixel     = 0
-detailsFrame.Active              = true
-detailsFrame.Selectable          = true
-detailsFrame.Visible             = false
-detailsFrame.Parent              = screenGui
+detailsFrame.Name             = "DetailsFrame"
+detailsFrame.Size             = UDim2.new(0, menuWidth, 0, menuHeight + 50)
+detailsFrame.Position         = UDim2.new(0.5, -menuWidth/2, 0.5, -(menuHeight+50)/2)
+detailsFrame.BackgroundColor3 = Color3.fromRGB(34,34,34)
+detailsFrame.BorderSizePixel  = 0
+detailsFrame.Active           = true
+detailsFrame.Selectable       = true
+detailsFrame.Visible          = false
+detailsFrame.Parent           = screenGui
 
 local backButton = Instance.new("TextButton")
-backButton.Name                = "BackButton"
-backButton.Size                = UDim2.new(0, 40, 0, 40)
-backButton.Position            = UDim2.new(1, -50, 0, 10)
-backButton.BackgroundColor3    = Color3.fromRGB(200, 0, 0)
-backButton.Text                = "<"
-backButton.Font                = Enum.Font.SourceSansBold
-backButton.TextSize            = 28
-backButton.TextColor3          = Color3.fromRGB(255,255,255)
-backButton.Parent              = detailsFrame
-
+backButton.Name             = "BackButton"
+backButton.Size             = UDim2.new(0, 40, 0, 40)
+backButton.Position         = UDim2.new(1, -50, 0, 10)
+backButton.BackgroundColor3 = Color3.fromRGB(200,0,0)
+backButton.Text             = "<"
+backButton.Font             = Enum.Font.SourceSansBold
+backButton.TextSize         = 28
+backButton.TextColor3       = Color3.fromRGB(255,255,255)
+backButton.Parent           = detailsFrame
 backButton.MouseButton1Click:Connect(function()
     detailsFrame.Visible = false
 end)
 
 local detailTitle = Instance.new("TextLabel")
-detailTitle.Name               = "DetailTitle"
-detailTitle.Size               = UDim2.new(1, -60, 0, 50)
-detailTitle.Position           = UDim2.new(0, 0, 0, 0)
-detailTitle.BackgroundColor3   = titleBackgroundColor
-detailTitle.BorderSizePixel    = 0
-detailTitle.Text               = "Player Details"
-detailTitle.TextColor3         = Color3.fromRGB(240,240,240)
-detailTitle.Font               = Enum.Font.SourceSansBold
-detailTitle.TextSize           = 28
-detailTitle.Parent             = detailsFrame
+detailTitle.Name             = "DetailTitle"
+detailTitle.Size             = UDim2.new(1, -60, 0, 50)
+detailTitle.Position         = UDim2.new(0, 0, 0, 0)
+detailTitle.BackgroundColor3 = titleBackgroundColor
+detailTitle.BorderSizePixel  = 0
+detailTitle.Text             = "Player Details"
+detailTitle.TextColor3       = Color3.fromRGB(240,240,240)
+detailTitle.Font             = Enum.Font.SourceSansBold
+detailTitle.TextSize         = 28
+detailTitle.Parent           = detailsFrame
 
 local detailContainer = Instance.new("Frame")
-detailContainer.Name               = "DetailContainer"
-detailContainer.Size               = UDim2.new(1, 0, 1, -60)
-detailContainer.Position           = UDim2.new(0, 0, 0, 60)
+detailContainer.Name                = "DetailContainer"
+detailContainer.Size                = UDim2.new(1, 0, 1, -60)
+detailContainer.Position            = UDim2.new(0, 0, 0, 60)
 detailContainer.BackgroundTransparency= 1
-detailContainer.Parent             = detailsFrame
+detailContainer.Parent              = detailsFrame
 
 local infoImageFrame = Instance.new("Frame")
 infoImageFrame.Name                  = "InfoImageFrame"
@@ -408,15 +530,15 @@ infoImageFrame.BackgroundTransparency= 1
 infoImageFrame.Parent                = detailContainer
 
 local infoLayout = Instance.new("UIListLayout")
-infoLayout.Parent                    = infoImageFrame
-infoLayout.FillDirection             = Enum.FillDirection.Horizontal
-infoLayout.HorizontalAlignment       = Enum.HorizontalAlignment.Left
-infoLayout.VerticalAlignment         = Enum.VerticalAlignment.Center
-infoLayout.Padding                   = UDim.new(0, 10)
+infoLayout.Parent              = infoImageFrame
+infoLayout.FillDirection       = Enum.FillDirection.Horizontal
+infoLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+infoLayout.VerticalAlignment   = Enum.VerticalAlignment.Center
+infoLayout.Padding             = UDim.new(0, 10)
 
 local detailInfo = Instance.new("TextLabel")
 detailInfo.Name               = "DetailInfo"
-detailInfo.Size               = UDim2.new(0, 0.6 * infoImageFrame.AbsoluteSize.X, 1, 0) -- will auto-scale
+detailInfo.Size               = UDim2.new(0.6, 0, 1, 0)
 detailInfo.BackgroundTransparency = 1
 detailInfo.TextColor3         = Color3.fromRGB(240,240,240)
 detailInfo.Font               = Enum.Font.SourceSans
@@ -426,23 +548,22 @@ detailInfo.Parent             = infoImageFrame
 
 local playerImage = Instance.new("ImageLabel")
 playerImage.Name               = "PlayerImage"
-playerImage.Size               = UDim2.new(0, 0.4 * infoImageFrame.AbsoluteSize.X, 1, 0) -- will auto-scale
+playerImage.Size               = UDim2.new(0.4, 0, 1, 0)
 playerImage.BackgroundTransparency = 1
 playerImage.Parent             = infoImageFrame
 
 local detailButtonFrame = Instance.new("Frame")
-detailButtonFrame.Name              = "DetailButtonFrame"
-detailButtonFrame.Size              = UDim2.new(1, -20, 1, -130)
-detailButtonFrame.Position          = UDim2.new(0, 10, 0, 130)
+detailButtonFrame.Name                = "DetailButtonFrame"
+detailButtonFrame.Size                = UDim2.new(1, -20, 1, -130)
+detailButtonFrame.Position            = UDim2.new(0, 10, 0, 130)
 detailButtonFrame.BackgroundTransparency= 1
-detailButtonFrame.Parent            = detailContainer
+detailButtonFrame.Parent              = detailContainer
 
 local detailGrid = Instance.new("UIGridLayout")
-detailGrid.Parent                   = detailButtonFrame
-detailGrid.CellSize                 = UDim2.new(0, 180, 0, 50)
-detailGrid.CellPadding              = UDim2.new(0, 10, 0, 10)
+detailGrid.Parent       = detailButtonFrame
+detailGrid.CellSize     = UDim2.new(0, 180, 0, 50)
+detailGrid.CellPadding  = UDim2.new(0, 10, 0, 10)
 
--- Helper to create buttons with hover-pointer
 local function createActionButton(text, startCallback, stopCallback)
     local btn = Instance.new("TextButton")
     btn.Size             = UDim2.new(0, 180, 0, 50)
@@ -481,7 +602,6 @@ local function createActionButton(text, startCallback, stopCallback)
     end
 end
 
--- Show player details in detail frame
 local function showPlayerDetails(player)
     local age = player.AccountAge
     local creationDate = os.date("%d.%m.%Y", os.time() - age * 24 * 3600)
@@ -496,37 +616,33 @@ local function showPlayerDetails(player)
     end)
     playerImage.Image = success and thumbnail or "rbxassetid://0"
 
-    -- Clear old buttons
     for _, child in ipairs(detailButtonFrame:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
 
-    -- Create action buttons
-    createActionButton("Teleport",      function() teleportToTarget(player) end)
-    createActionButton("Spectate",      function() spectatePlayer(player) end, stopSpectate)
-    createActionButton("Look At Me",    function() doLookAtMe(player) end,    function() doLookAtMe(player) end)
-    createActionButton("Step On Me",    function() doStepOnMe(player) end,    function() doStepOnMe(player) end)
-    createActionButton("Bang V2",       function() doBangV2(player) end,      function() doBangV2(player) end)
-    createActionButton("Anti Invisible",function() toggleAntiInvisible(player) end,
-                                                   function() toggleAntiInvisible(player) end)
-    createActionButton("Bang",          function() doBang(player) end,        function() doBang(player) end)
-    createActionButton("Headsit",       function() doHeadsit(player) end,     function() doHeadsit(player) end)
+    createActionButton("Teleport",       function() teleportToTarget(player) end)
+    createActionButton("Spectate",       function() spectatePlayer(player) end, stopSpectate)
+    createActionButton("Look At Me",     function() doLookAtMe(player) end,    doLookAtMe)
+    createActionButton("Step On Me",     function() doStepOnMe(player) end,    doStepOnMe)
+    createActionButton("Bang V2",        function() doBangV2(player) end,      doBangV2)
+    createActionButton("Anti Invisible", function() toggleAntiInvisible(player) end, toggleAntiInvisible)
+    createActionButton("Bang",           function() doBang(player) end,         doBang)
+    createActionButton("Headsit",        function() doHeadsit(player) end,      doHeadsit)
 
     detailsFrame.Visible = true
 end
 
--- Create a list entry for a player
 local function createPlayerEntry(player)
     local entry = Instance.new("TextButton")
-    entry.Name               = player.Name .. "_Entry"
-    entry.Size               = UDim2.new(1, -10, 0, 50)
-    entry.BackgroundColor3   = Color3.fromRGB(50,50,50)
-    entry.BorderSizePixel    = 0
-    entry.Text               = player.Name
-    entry.Font               = Enum.Font.SourceSansBold
-    entry.TextSize           = 22
-    entry.TextColor3         = Color3.fromRGB(240,240,240)
-    entry.Parent             = scrollingFrame
+    entry.Name             = player.Name .. "_Entry"
+    entry.Size             = UDim2.new(1, -10, 0, 50)
+    entry.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    entry.BorderSizePixel  = 0
+    entry.Text             = player.Name
+    entry.Font             = Enum.Font.SourceSansBold
+    entry.TextSize         = 22
+    entry.TextColor3       = Color3.fromRGB(240,240,240)
+    entry.Parent           = scrollingFrame
 
     entry.MouseButton1Click:Connect(function()
         showPlayerDetails(player)
@@ -539,7 +655,6 @@ local function createPlayerEntry(player)
     end)
 end
 
--- Search filter
 searchBox:GetPropertyChangedSignal("Text"):Connect(function()
     local query = string.lower(searchBox.Text or "")
     for _, child in ipairs(scrollingFrame:GetChildren()) do
@@ -550,7 +665,6 @@ searchBox:GetPropertyChangedSignal("Text"):Connect(function()
     end
 end)
 
--- Populate existing players
 for _, player in ipairs(Players:GetPlayers()) do
     createPlayerEntry(player)
 end
@@ -560,7 +674,6 @@ Players.PlayerRemoving:Connect(function(player)
     if entry then entry:Destroy() end
 end)
 
--- Click on 3D character to open details (ignoring UI clicks)
 local mouse = localPlayer:GetMouse()
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed or input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
@@ -568,13 +681,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if target then
         local model = target:FindFirstAncestorOfClass("Model")
         local plr   = model and Players:GetPlayerFromCharacter(model)
-        if plr then
-            showPlayerDetails(plr)
-        end
+        if plr then showPlayerDetails(plr) end
     end
 end)
 
--- Show hand-pointer when hovering over clickable characters
 mouse.Move:Connect(function()
     local target = mouse.Target
     local model = target and target:FindFirstAncestorOfClass("Model")
@@ -585,10 +695,8 @@ mouse.Move:Connect(function()
     end
 end)
 
--- Make frames draggable
 local function makeDraggable(frame)
     local dragging, dragInput, dragStart, startPos
-
     local function update(input)
         local delta = input.Position - dragStart
         frame.Position = UDim2.new(
@@ -596,10 +704,9 @@ local function makeDraggable(frame)
             startPos.Y.Scale, startPos.Y.Offset + delta.Y
         )
     end
-
     frame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
+            dragging  = true
             dragStart = input.Position
             startPos  = frame.Position
             input.Changed:Connect(function()
@@ -609,24 +716,20 @@ local function makeDraggable(frame)
             end)
         end
     end)
-
     frame.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement then
             dragInput = input
         end
     end)
-
     UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            update(input)
-        end
+        if input == dragInput and dragging then update(input) end
     end)
 end
 
 makeDraggable(mainFrame)
 makeDraggable(detailsFrame)
+makeDraggable(settingsFrame)
 
--- Toggle main GUI with F key
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if not gameProcessed and input.KeyCode == toggleKey and not manualClosed then
         screenGui.Enabled = not screenGui.Enabled
