@@ -306,7 +306,7 @@ settingsButton.TextColor3       = Color3.fromRGB(255,255,255)
 settingsButton.Parent           = mainFrame
 
 -- Search Box & Player List
-local searchBox = Instance.new("")
+local searchBox = Instance.new("TextBox")
 searchBox.Name             = "SearchBox"
 searchBox.Size             = UDim2.new(1, -20, 0, 40)
 searchBox.Position         = UDim2.new(0, 10, 0, 70)
@@ -369,7 +369,7 @@ widthLabel.Font                = Enum.Font.SourceSans
 widthLabel.TextSize            = 18
 widthLabel.Parent              = settingsFrame
 
-local widthInput = Instance.new("")
+local widthInput = Instance.new("TextBox")
 widthInput.Name             = "WidthInput"
 widthInput.Size             = UDim2.new(1, -20, 0, 25)
 widthInput.Position         = UDim2.new(0, 10, 0, 75)
@@ -393,7 +393,7 @@ heightLabel.Font                = Enum.Font.SourceSans
 heightLabel.TextSize            = 18
 heightLabel.Parent              = settingsFrame
 
-local heightInput = Instance.new("")
+local heightInput = Instance.new("TextBox")
 heightInput.Name             = "HeightInput"
 heightInput.Size             = UDim2.new(1, -20, 0, 25)
 heightInput.Position         = UDim2.new(0, 10, 0, 135)
@@ -417,7 +417,7 @@ keyLabel.Font                = Enum.Font.SourceSans
 keyLabel.TextSize            = 18
 keyLabel.Parent              = settingsFrame
 
-local keyInput = Instance.new("")
+local keyInput = Instance.new("TextBox")
 keyInput.Name             = "KeyInput"
 keyInput.Size             = UDim2.new(1, -20, 0, 25)
 keyInput.Position         = UDim2.new(0, 10, 0, 195)
