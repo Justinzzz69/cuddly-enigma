@@ -10,737 +10,541 @@ local VoiceChatService = game:GetService("VoiceChatService")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Hilfsfunktion, um Movement wieder zu aktivieren (Entankern, PlatformStand deaktivieren)
+-- Movement wieder aktivieren
 local function reEnableMovement()
-	local char = LocalPlayer.Character
-	if char then
-		local root = char:FindFirstChild("HumanoidRootPart")
-		local hum = char:FindFirstChild("Humanoid")
-		if root then
-			root.Anchored = false
-		end
-		if hum then
-			hum.PlatformStand = false
-			hum.Sit = false
-		end
-	end
+    local char = LocalPlayer.Character
+    if char then
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local hum  = char:FindFirstChild("Humanoid")
+        if root then root.Anchored = false end
+        if hum then
+            hum.PlatformStand = false
+            hum.Sit = false
+        end
+    end
 end
 
--- Beim Respawn wird die Kamera zurückgesetzt
-LocalPlayer.CharacterAdded:Connect(function(character)
-	-- Warte kurz, bis der Character vollständig geladen ist
-	task.wait(1)
-	local humanoid = character:WaitForChild("Humanoid", 5)
-	if humanoid then
-		Workspace.CurrentCamera.CameraSubject = humanoid
-		Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
-		print("LocalPlayer respawned, Kamera zurückgesetzt.")
-	end
+-- Ring-Koordinaten
+local collectCoords = {
+    Vector3.new(3510.47, 177.41, 1198.01),
+    Vector3.new(3432.29, 155.51, 1137.61),
+    Vector3.new(3476.75, -126.64, 968.31),
+    Vector3.new(3346.27, -106.83, 1133.09)
+}
+
+-- Status-Variablen
+local autoCollectActive     = false
+local autoCollectTask
+local undergroundActive     = false
+local undergroundTask
+
+-- Auto-Collect Ringe
+local function autoCollectMoney()
+    enableFly()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+    if not root then return end
+    for _, coord in ipairs(collectCoords) do
+        root.CFrame = CFrame.new(coord)
+        reEnableMovement()
+        task.wait(0.05)
+        root.CFrame = root.CFrame + Vector3.new(0, -3, 0)
+        task.wait(0.1)
+        root.CFrame = root.CFrame + Vector3.new(0, 6, 0)
+        task.wait(0.5)
+    end
+end
+
+-- Auto-Collect unterirdische Ringe
+local function collectUnderground()
+    enableFly()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+    if not root then return end
+    for i = 3, 4 do
+        root.CFrame = CFrame.new(collectCoords[i])
+        reEnableMovement()
+        task.wait(0.05)
+        root.CFrame = root.CFrame + Vector3.new(0, -3, 0)
+        task.wait(0.1)
+        root.CFrame = root.CFrame + Vector3.new(0, 6, 0)
+        task.wait(0.5)
+    end
+end
+
+-- Kamera zurücksetzen beim Respawn
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    local hum = char:WaitForChild("Humanoid", 5)
+    if hum then
+        Workspace.CurrentCamera.CameraSubject = hum
+        Workspace.CurrentCamera.CameraType   = Enum.CameraType.Custom
+    end
 end)
 
--- Fenster-Einstellungen
+-- Fenster & Tabs
 local Window = Fluent:CreateWindow({
-	Title = "Voice Ban Bypasser",
-	SubTitle = "",
-	TabWidth = 160,
-	Size = UDim2.fromOffset(580, 460),
-	Acrylic = false,
-	Theme = "Dark",
-	MinimizeKey = Enum.KeyCode.LeftControl
+    Title       = "Voice Ban Bypasser",
+    TabWidth    = 160,
+    Size        = UDim2.fromOffset(580,460),
+    Acrylic     = false,
+    Theme       = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
 })
 
 local Tabs = {
-	Player   = Window:AddTab({ Title = "Player",   Icon = "user" }),
-	Chams    = Window:AddTab({ Title = "ESP",    Icon = "eye" }),
-	Voice    = Window:AddTab({ Title = "Voice",    Icon = "mic" }),
-	Teleport = Window:AddTab({ Title = "Teleport", Icon = "map" }),
-	Spectate = Window:AddTab({ Title = "Spectate", Icon = "camera" }),
-	Info     = Window:AddTab({ Title = "Info",     Icon = "heart" }),
-	Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+    Player   = Window:AddTab({Title="Player",   Icon="user"}),
+    Chams    = Window:AddTab({Title="ESP",      Icon="eye"}),
+    Voice    = Window:AddTab({Title="Voice",    Icon="mic"}),
+    Teleport = Window:AddTab({Title="Teleport", Icon="map"}),
+    Spectate = Window:AddTab({Title="Spectate", Icon="camera"}),
+    Info     = Window:AddTab({Title="Info",     Icon="heart"}),
+    Settings = Window:AddTab({Title="Settings", Icon="settings"})
 }
 
+-- Grundwerte für Speed & Fly
 local currentSpeed = 16
-local flySpeed = 50
+local flySpeed     = 50
 local flyBodyVelocity, flyBodyGyro, flyConnection
 
----------------------------------------------------------
 -- Hilfsfunktionen
----------------------------------------------------------
-local function getRootPart(character)
-	-- Versuche zuerst R15 ("HumanoidRootPart"), sonst R6 ("Torso")
-	local root = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
-	if not root then
-		pcall(function()
-			root = character:WaitForChild("HumanoidRootPart", 5)
-		end)
-	end
-	return root
+local function getRootPart(char)
+    local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+    if not root then pcall(function() root = char:WaitForChild("HumanoidRootPart",5) end) end
+    return root
 end
 
 local function setWalkSpeed(speed)
-	local char = LocalPlayer.Character
-	if char and char:FindFirstChild("Humanoid") then
-		char.Humanoid.WalkSpeed = speed
-	end
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.WalkSpeed = speed
+    end
 end
 
-local function enableFly()
-	local char = LocalPlayer.Character
-	if char and char:FindFirstChild("HumanoidRootPart") then
-		local root = char.HumanoidRootPart
-		flyBodyVelocity = Instance.new("BodyVelocity", root)
-		flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-		flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-
-		flyBodyGyro = Instance.new("BodyGyro", root)
-		flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-		flyBodyGyro.CFrame = root.CFrame
-
-		flyConnection = RunService.RenderStepped:Connect(function()
-			local dir = Vector3.new(0, 0, 0)
-			if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-				dir = dir + Workspace.CurrentCamera.CFrame.LookVector
-			end
-			if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-				dir = dir - Workspace.CurrentCamera.CFrame.LookVector
-			end
-			if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-				dir = dir - Workspace.CurrentCamera.CFrame.RightVector
-			end
-			if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-				dir = dir + Workspace.CurrentCamera.CFrame.RightVector
-			end
-			if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-				dir = dir + Vector3.new(0, 1, 0)
-			end
-			if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-				dir = dir - Vector3.new(0, 1, 0)
-			end
-
-			if dir.Magnitude > 0 then
-				flyBodyVelocity.Velocity = dir.Unit * flySpeed
-			else
-				flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-			end
-			flyBodyGyro.CFrame = Workspace.CurrentCamera.CFrame
-		end)
-	end
+-- Fly aktivieren / deaktivieren
+function enableFly()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local root = char.HumanoidRootPart
+        if not flyBodyVelocity then
+            flyBodyVelocity = Instance.new("BodyVelocity", root)
+            flyBodyVelocity.MaxForce = Vector3.new(1e5,1e5,1e5)
+        end
+        if not flyBodyGyro then
+            flyBodyGyro = Instance.new("BodyGyro", root)
+            flyBodyGyro.MaxTorque = Vector3.new(1e5,1e5,1e5)
+        end
+        flyBodyGyro.CFrame = root.CFrame
+        if not flyConnection then
+            flyConnection = RunService.RenderStepped:Connect(function()
+                local dir = Vector3.new()
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir += Workspace.CurrentCamera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir -= Workspace.CurrentCamera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir -= Workspace.CurrentCamera.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir += Workspace.CurrentCamera.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then dir -= Vector3.new(0,1,0) end
+                flyBodyVelocity.Velocity = (dir.Magnitude>0 and dir.Unit*flySpeed) or Vector3.new()
+                flyBodyGyro.CFrame      = Workspace.CurrentCamera.CFrame
+            end)
+        end
+    end
 end
 
 local function disableFly()
-	if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
-	if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
-	if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+    if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity=nil end
+    if flyBodyGyro    then flyBodyGyro:Destroy()    flyBodyGyro=nil    end
+    if flyConnection  then flyConnection:Disconnect() flyConnection=nil end
 end
 
----------------------------------------------------------
--- Noclip-Funktionalität
----------------------------------------------------------
-local noclipEnabled = false
-local noclipConnection
-
+-- Noclip aktivieren / deaktivieren
+local noclipConn
 local function enableNoclip()
-	noclipEnabled = true
-	noclipConnection = RunService.Stepped:Connect(function()
-		local character = LocalPlayer.Character
-		if character then
-			for _, part in ipairs(character:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.CanCollide = false
-				end
-			end
-		end
-	end)
-	print("Noclip aktiviert")
+    noclipConn = RunService.Stepped:Connect(function()
+        local char = LocalPlayer.Character
+        if char then
+            for _,p in ipairs(char:GetDescendants()) do
+                if p:IsA("BasePart") then p.CanCollide = false end
+            end
+        end
+    end)
 end
 
 local function disableNoclip()
-	noclipEnabled = false
-	if noclipConnection then
-		noclipConnection:Disconnect()
-		noclipConnection = nil
-	end
-	print("Noclip deaktiviert")
+    if noclipConn then noclipConn:Disconnect() noclipConn=nil end
 end
 
----------------------------------------------------------
--- Teleport-Funktion (wartet auf vollständigen Character)
----------------------------------------------------------
-local function TeleportToPlayer(targetPlayer)
-	local localChar = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-	local targetChar = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
-	if not targetChar then
-		warn("Teleportation fehlgeschlagen, der Spieler " .. targetPlayer.Name .. " hat noch keinen Character.")
-		return
-	end
-
-	local root = getRootPart(localChar)
-	local targetRoot = getRootPart(targetChar)
-	if root and targetRoot then
-		root.CFrame = targetRoot.CFrame
-		reEnableMovement()
-		print("Teleported zu " .. targetPlayer.Name)
-	else
-		warn("Teleportation fehlgeschlagen, kein Root-Part gefunden.")
-	end
+-- Teleport & Spectate
+local function TeleportToPlayer(plr)
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local root = getRootPart(char)
+    local tgt  = getRootPart(plr.Character or plr.CharacterAdded:Wait())
+    if root and tgt then
+        root.CFrame = tgt.CFrame
+        reEnableMovement()
+    end
 end
 
----------------------------------------------------------
--- Spectate-Funktionen (wartet auf vollständigen Character)
----------------------------------------------------------
-local function SpectatePlayer(targetPlayer)
-	local targetChar = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
-	if not targetChar then
-		warn("Spectate fehlgeschlagen, der Spieler " .. targetPlayer.Name .. " hat noch keinen Character.")
-		return
-	end
-	local humanoid = targetChar:FindFirstChild("Humanoid")
-	if humanoid then
-		Workspace.CurrentCamera.CameraSubject = humanoid
-		Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
-		print("Spectating " .. targetPlayer.Name)
-	else
-		warn("Kein Humanoid bei " .. targetPlayer.Name .. " gefunden.")
-	end
+local function SpectatePlayer(plr)
+    local char = plr.Character or plr.CharacterAdded:Wait()
+    local hum  = char:FindFirstChild("Humanoid")
+    if hum then
+        Workspace.CurrentCamera.CameraSubject = hum
+        Workspace.CurrentCamera.CameraType   = Enum.CameraType.Custom
+    end
 end
 
 local function StopSpectating()
-	local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-	local humanoid = char:FindFirstChild("Humanoid")
-	if humanoid then
-		Workspace.CurrentCamera.CameraSubject = humanoid
-		Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
-		print("Spectating beendet.")
-		reEnableMovement()
-	end
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hum  = char:FindFirstChild("Humanoid")
+    if hum then
+        Workspace.CurrentCamera.CameraSubject = hum
+        Workspace.CurrentCamera.CameraType   = Enum.CameraType.Custom
+        reEnableMovement()
+    end
 end
 
----------------------------------------------------------
--- Skeleton ESP (Drawing API)
----------------------------------------------------------
-local SkeletonConnections = {
-	{"Head", "UpperTorso"},
-	{"UpperTorso", "LeftUpperArm"},
-	{"LeftUpperArm", "LeftLowerArm"},
-	{"LeftLowerArm", "LeftHand"},
-	{"UpperTorso", "RightUpperArm"},
-	{"RightUpperArm", "RightLowerArm"},
-	{"RightLowerArm", "RightHand"},
-	{"UpperTorso", "LowerTorso"},
-	{"LowerTorso", "LeftUpperLeg"},
-	{"LeftUpperLeg", "LeftLowerLeg"},
-	{"LeftLowerLeg", "LeftFoot"},
-	{"LowerTorso", "RightUpperLeg"},
-	{"RightUpperLeg", "RightLowerLeg"},
-	{"RightLowerLeg", "RightFoot"}
-}
+-- Player Tab
+do
+    local sec = Tabs.Player:AddSection("Player Controls")
+    sec:AddSlider("SpeedSlider", {Title="Walk Speed",Default=16,Min=0,Max=150,Rounding=0})
+       :OnChanged(function(v) setWalkSpeed(v) end)
+    sec:AddToggle("FlyToggle", {Title="Fly",Default=false})
+       :OnChanged(function(s) if s then enableFly() else disableFly() end end)
+    sec:AddSlider("FlySpeedSlider", {Title="Fly Speed",Default=50,Min=0,Max=300,Rounding=0})
+       :OnChanged(function(v) flySpeed=v end)
+    sec:AddToggle("NoclipToggle", {Title="Noclip",Default=false})
+       :OnChanged(function(s) if s then enableNoclip() else disableNoclip() end end)
 
-local skeletonESPEnabled = false
-local skeletonESPColor = Color3.new(1, 0, 0)
-local SkeletonESPs = {}
+    sec:AddToggle("AutoCollectToggle", {Title="Auto Collect Rings",Default=false})
+       :OnChanged(function(s)
+           autoCollectActive = s
+           if s then
+               autoCollectTask = task.spawn(function()
+                   while autoCollectActive do
+                       autoCollectMoney()
+                       task.wait(1)
+                   end
+               end)
+           else
+               if autoCollectTask then task.cancel(autoCollectTask) end
+               if not undergroundActive then disableFly() end
+           end
+       end)
 
-local function CreateSkeletonForPlayer(player)
-	local drawings = {}
-	for i, connection in ipairs(SkeletonConnections) do
-		local line = Drawing.new("Line")
-		line.Visible = true
-		line.Transparency = 1
-		line.Color = skeletonESPColor
-		line.Thickness = 2
-		drawings[i] = line
-	end
-	SkeletonESPs[player] = drawings
+    sec:AddToggle("AutoCollectUndergroundToggle", {Title="Collect Underground Only",Default=false})
+       :OnChanged(function(s)
+           undergroundActive = s
+           if s then
+               undergroundTask = task.spawn(function()
+                   while undergroundActive do
+                       collectUnderground()
+                       task.wait(1)
+                   end
+               end)
+           else
+               if undergroundTask then task.cancel(undergroundTask) end
+               if not autoCollectActive then disableFly() end
+           end
+       end)
+
+    local afk = Tabs.Player:AddSection("Anti AFK")
+    afk:AddToggle("AntiAFKToggle", {Title="Anti AFK",Default=false})
+       :OnChanged(function(s)
+           if s then
+               LocalPlayer.Idled:Connect(function()
+                   game:GetService("VirtualUser"):CaptureController()
+                   game:GetService("VirtualUser"):ClickButton2(Vector2.new())
+               end)
+           end
+       end)
 end
 
-local function UpdateSkeletonESP(player)
-	if not SkeletonESPs[player] then
-		CreateSkeletonForPlayer(player)
-	end
-	local drawings = SkeletonESPs[player]
-	local character = player.Character
-	if character then
-		for i, connection in ipairs(SkeletonConnections) do
-			local partA = character:FindFirstChild(connection[1])
-			local partB = character:FindFirstChild(connection[2])
-			if partA and partB then
-				local vectorA, onScreenA = Workspace.CurrentCamera:WorldToViewportPoint(partA.Position)
-				local vectorB, onScreenB = Workspace.CurrentCamera:WorldToViewportPoint(partB.Position)
-				if onScreenA and onScreenB then
-					drawings[i].Visible = true
-					drawings[i].From = Vector2.new(vectorA.X, vectorA.Y)
-					drawings[i].To = Vector2.new(vectorB.X, vectorB.Y)
-					drawings[i].Color = skeletonESPColor
-				else
-					drawings[i].Visible = false
-				end
-			else
-				drawings[i].Visible = false
-			end
-		end
-	end
+-- Chams / ESP / Nametags
+do
+    -- Chams
+    local chamsColor    = Color3.new(1,1,1)
+    local chamsActive   = false
+    local chamsTask
+
+    local function applyChams(chr)
+        task.wait(0.1)
+        if not chr or not chr:IsDescendantOf(game) then return end
+        pcall(function()
+            local hl = chr:FindFirstChild("ChamHighlight")
+            if not hl then
+                hl = Instance.new("Highlight")
+                hl.Name               = "ChamHighlight"
+                hl.Adornee            = chr
+                hl.FillTransparency   = 0.5
+                hl.OutlineTransparency= 0
+                hl.Parent             = chr
+            end
+            hl.FillColor    = chamsColor
+            hl.OutlineColor = chamsColor
+        end)
+    end
+
+    local function updateChams()
+        for _,p in ipairs(Players:GetPlayers()) do
+            if p~=LocalPlayer and p.Character then
+                applyChams(p.Character)
+            end
+        end
+    end
+
+    local function removeChams()
+        for _,p in ipairs(Players:GetPlayers()) do
+            if p.Character then
+                local hl = p.Character:FindFirstChild("ChamHighlight")
+                if hl then hl:Destroy() end
+            end
+        end
+    end
+
+    -- Skeleton ESP
+    local SkeletonConnections = {
+        {"Head","UpperTorso"},{"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},
+        {"LeftLowerArm","LeftHand"},{"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},
+        {"RightLowerArm","RightHand"},{"UpperTorso","LowerTorso"},{"LowerTorso","LeftUpperLeg"},
+        {"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},{"LowerTorso","RightUpperLeg"},
+        {"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"}
+    }
+    local skeletonESPEnabled = false
+    local skeletonESPColor   = Color3.new(1,0,0)
+    local SkeletonESPs       = {}
+
+    local function CreateSkeletonForPlayer(player)
+        local drawings = {}
+        for i, conn in ipairs(SkeletonConnections) do
+            local line = Drawing.new("Line")
+            line.Visible      = true
+            line.Transparency = 1
+            line.Color       = skeletonESPColor
+            line.Thickness   = 2
+            drawings[i]      = line
+        end
+        SkeletonESPs[player] = drawings
+    end
+
+    local function UpdateSkeletonESP(player)
+        if not SkeletonESPs[player] then CreateSkeletonForPlayer(player) end
+        local drawings = SkeletonESPs[player]
+        local char     = player.Character
+        if char then
+            for i, conn in ipairs(SkeletonConnections) do
+                local partA = char:FindFirstChild(conn[1])
+                local partB = char:FindFirstChild(conn[2])
+                if partA and partB then
+                    local a,onA = Workspace.CurrentCamera:WorldToViewportPoint(partA.Position)
+                    local b,onB = Workspace.CurrentCamera:WorldToViewportPoint(partB.Position)
+                    if onA and onB then
+                        local line = drawings[i]
+                        line.Visible = true
+                        line.From    = Vector2.new(a.X,a.Y)
+                        line.To      = Vector2.new(b.X,b.Y)
+                        line.Color   = skeletonESPColor
+                    else
+                        drawings[i].Visible = false
+                    end
+                else
+                    drawings[i].Visible = false
+                end
+            end
+        end
+    end
+
+    -- Nametags
+    local NametagsActive = false
+    local nametagTask
+
+    local function CreateNametag(p)
+        local bill = Instance.new("BillboardGui")
+        bill.Name        = "Nametag"
+        bill.Size        = UDim2.new(0,50,0,50)
+        bill.StudsOffset = Vector3.new(0,2,0)
+        bill.AlwaysOnTop = true
+        local frame      = Instance.new("Frame", bill)
+        frame.Size       = UDim2.new(1,0,1,0)
+        frame.BackgroundTransparency = 1
+        local lbl        = Instance.new("TextLabel", frame)
+        lbl.Size        = UDim2.new(1,0,1,0)
+        lbl.BackgroundTransparency = 1
+        lbl.Text         = p.Name
+        lbl.TextScaled   = false
+        lbl.TextSize     = 14
+        lbl.Font         = Enum.Font.GothamBold
+        lbl.TextColor3   = chamsColor
+        lbl.TextStrokeTransparency = 0.3
+        return bill
+    end
+
+    local function UpdateNametags()
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p~=LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+                local head = p.Character.Head
+                if not head:FindFirstChild("Nametag") then
+                    local tag = CreateNametag(p)
+                    tag.Parent = head
+                end
+            end
+        end
+    end
+
+    local function RemoveNametags()
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p.Character and p.Character:FindFirstChild("Head") then
+                local tag = p.Character.Head:FindFirstChild("Nametag")
+                if tag then tag:Destroy() end
+            end
+        end
+    end
+
+    -- ESP-Section
+    local sec = Tabs.Chams:AddSection("ESP / Chams / Nametags")
+    sec:AddToggle("ChamsToggle",{Title="Chams",Default=false})
+       :OnChanged(function(s)
+           chamsActive = s
+           if s then
+               chamsTask = task.spawn(function()
+                   while chamsActive do
+                       updateChams()
+                       task.wait(0.5)
+                   end
+               end)
+           else
+               if chamsTask then task.cancel(chamsTask) end
+               removeChams()
+           end
+       end)
+    sec:AddColorpicker("ChamsColor",{Title="Chams Color",Default=Color3.new(1,1,1)})
+       :OnChanged(function(c) chamsColor = c end)
+
+    sec:AddToggle("SkeletonESPToggle",{Title="Skeleton ESP",Default=false})
+       :OnChanged(function(s)
+           skeletonESPEnabled = s
+           if not s then
+               for _, lines in pairs(SkeletonESPs) do
+                   for _, l in ipairs(lines) do l:Remove() end
+               end
+               SkeletonESPs = {}
+           end
+       end)
+    sec:AddColorpicker("SkeletonESPColor",{Title="Skeleton Color",Default=Color3.new(1,0,0)})
+       :OnChanged(function(c) skeletonESPColor = c end)
+    RunService.RenderStepped:Connect(function()
+        if skeletonESPEnabled then
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p~=LocalPlayer and p.Character then
+                    UpdateSkeletonESP(p)
+                end
+            end
+        end
+    end)
+
+    sec:AddToggle("NametagsToggle",{Title="Nametags",Default=false})
+       :OnChanged(function(s)
+           NametagsActive = s
+           if s then
+               nametagTask = task.spawn(function()
+                   while NametagsActive do
+                       UpdateNametags()
+                       task.wait(2)
+                   end
+               end)
+           else
+               if nametagTask then task.cancel(nametagTask) end
+               RemoveNametags()
+           end
+       end)
 end
 
-Players.PlayerRemoving:Connect(function(player)
-	if SkeletonESPs[player] then
-		for _, line in ipairs(SkeletonESPs[player]) do
-			line:Remove()
-		end
-		SkeletonESPs[player] = nil
-	end
-end)
-
-RunService.RenderStepped:Connect(function()
-	if skeletonESPEnabled then
-		for _, player in pairs(Players:GetPlayers()) do
-			if player ~= LocalPlayer and player.Character then
-				UpdateSkeletonESP(player)
-			end
-		end
-	end
-end)
-
----------------------------------------------------------
--- Tab: Player
----------------------------------------------------------
-local PlayerSection = Tabs.Player:AddSection("Speed, Fly, Noclip")
-PlayerSection:AddSlider("SpeedSlider", {
-	Title = "Walk Speed",
-	Default = 16,
-	Min = 0,
-	Max = 150,
-	Rounding = 0
-}):OnChanged(function(value)
-	currentSpeed = value
-	setWalkSpeed(currentSpeed)
-end)
-
-PlayerSection:AddToggle("FlyToggle", { Title = "Fly", Default = false })
-	:OnChanged(function(state)
-		if state then
-			enableFly()
-		else
-			disableFly()
-		end
-	end)
-
-PlayerSection:AddSlider("FlySpeedSlider", {
-	Title = "Fly Speed",
-	Default = 50,
-	Min = 0,
-	Max = 300,
-	Rounding = 0
-}):OnChanged(function(value)
-	flySpeed = value
-end)
-
-PlayerSection:AddToggle("NoclipToggle", { Title = "Noclip", Default = false })
-	:OnChanged(function(state)
-		if state then
-			enableNoclip()
-		else
-			disableNoclip()
-		end
-	end)
-
----------------------------------------------------------
--- Anti AFK
----------------------------------------------------------
-local AntiAFKSection = Tabs.Player:AddSection("Anti AFK")
-local AFKConnection
-
-local function EnableAntiAFK()
-	if AFKConnection then
-		AFKConnection:Disconnect()
-		AFKConnection = nil
-	end
-	AFKConnection = LocalPlayer.Idled:Connect(function()
-		game:GetService("VirtualUser"):CaptureController()
-		game:GetService("VirtualUser"):ClickButton2(Vector2.new())
-	end)
+-- Voice Tab
+do
+    local sec = Tabs.Voice:AddSection("Voice Chat")
+    sec:AddButton({Title="Bypass Voiceban",Callback=function()
+        if VoiceChatService and VoiceChatService.joinVoice then
+            local ok,err = pcall(function() VoiceChatService:joinVoice() end)
+            if not ok then warn("Voice join failed: "..tostring(err)) end
+            reEnableMovement()
+        end
+    end})
+    local auto = false
+    sec:AddToggle("AutoVoiceJoin",{Title="Auto Join",Default=false})
+       :OnChanged(function(s)
+           auto = s
+           if s then
+               task.spawn(function()
+                   while auto do
+                       if not pcall(function() return VoiceChatService.Running end) then
+                           pcall(function() VoiceChatService:joinVoice() end)
+                       end
+                       reEnableMovement()
+                       task.wait(5)
+                   end
+               end)
+           end
+       end)
 end
 
-local function DisableAntiAFK()
-	if AFKConnection then
-		AFKConnection:Disconnect()
-		AFKConnection = nil
-	end
+-- Teleport Tab
+do
+    local sec = Tabs.Teleport:AddSection("Teleport Players")
+    local buttons = {}
+    for _,p in ipairs(Players:GetPlayers()) do
+        if p~=LocalPlayer then
+            buttons[p.UserId] = sec:AddButton({
+                Title = p.Name,
+                Callback = function() TeleportToPlayer(p) end
+            })
+        end
+    end
+    Players.PlayerAdded:Connect(function(p)
+        if p~=LocalPlayer then
+            buttons[p.UserId] = sec:AddButton({
+                Title = p.Name,
+                Callback = function() TeleportToPlayer(p) end
+            })
+        end
+    end)
+    Players.PlayerRemoving:Connect(function(p)
+        if buttons[p.UserId] then buttons[p.UserId]:Remove(); buttons[p.UserId]=nil end
+    end)
 end
 
-AntiAFKSection:AddToggle("AntiAFKToggle", { Title = "Anti AFK", Default = false })
-	:OnChanged(function(state)
-		if state then
-			EnableAntiAFK()
-		else
-			DisableAntiAFK()
-		end
-	end)
-
----------------------------------------------------------
--- Tab: Chams (ESP / Nametags)
----------------------------------------------------------
-local chamsActive = false
-local chamsColor = Color3.fromRGB(255, 255, 255)
-
--- Diese Funktion wendet die Chams (Highlight) auf einen Character an.
-local function applyChamsToCharacter(character)
-	-- Debug: Gib den Namen des Characters aus
-	print("applyChamsToCharacter aufgerufen für: " .. (character.Name or "unbekannt"))
-	
-	-- Warte nur 0,1 Sekunden statt 1, damit die Chams schneller angewendet werden
-	task.wait(0.1)
-	
-	-- Überprüfe, ob der Character existiert und im Spiel ist
-	if not character or not character:IsDescendantOf(game) then
-		print("Character fehlt oder nicht im Spiel: " .. (character.Name or "unbekannt"))
-		return
-	end
-	
-	-- Versuche, das Highlight zu erstellen/aktualisieren
-	local success, err = pcall(function()
-		local highlight = character:FindFirstChild("ChamHighlight")
-		if not highlight then
-			print("Erstelle neuen Highlight für: " .. character.Name)
-			highlight = Instance.new("Highlight")
-			highlight.Name = "ChamHighlight"
-			highlight.Adornee = character
-			highlight.FillColor = chamsColor
-			highlight.OutlineColor = chamsColor
-			highlight.FillTransparency = 0.5
-			highlight.OutlineTransparency = 0
-			highlight.Parent = character
-		else
-			print("Aktualisiere bestehenden Highlight für: " .. character.Name)
-			highlight.Adornee = character
-			highlight.FillColor = chamsColor
-			highlight.OutlineColor = chamsColor
-		end
-	end)
-	if not success then
-		warn("Fehler beim Anwenden der Chams auf " .. character.Name .. ": " .. tostring(err))
-	end
+-- Spectate Tab
+do
+    local sec = Tabs.Spectate:AddSection("Spectate Players")
+    sec:AddButton({Title="Stop Spectate",Callback=StopSpectating})
+    local buttons = {}
+    for _,p in ipairs(Players:GetPlayers()) do
+        if p~=LocalPlayer then
+            buttons[p.UserId] = sec:AddButton({
+                Title=p.Name,
+                Callback=function() SpectatePlayer(p) end
+            })
+        end
+    end
+    Players.PlayerAdded:Connect(function(p)
+        if p~=LocalPlayer then
+            buttons[p.UserId] = sec:AddButton({
+                Title=p.Name,
+                Callback=function() SpectatePlayer(p) end
+            })
+        end
+    end)
+    Players.PlayerRemoving:Connect(function(p)
+        if buttons[p.UserId] then buttons[p.UserId]:Remove(); buttons[p.UserId]=nil end
+    end)
 end
 
-local function UpdateChams()
-	for _, p in pairs(Players:GetPlayers()) do
-		-- Falls du dich selbst auch markieren möchtest, entferne die folgende Bedingung
-		if p ~= LocalPlayer and p.Character then
-			applyChamsToCharacter(p.Character)
-		end
-	end
-end
-
-local function RemoveChams()
-	for _, p in pairs(Players:GetPlayers()) do
-		if p.Character then
-			local highlight = p.Character:FindFirstChild("ChamHighlight")
-			if highlight then
-				highlight:Destroy()
-			end
-		end
-	end
-end
-
-local chamsTask
-local function chamsLoop()
-	while chamsActive do
-		UpdateChams()
-		task.wait(0.5)
-	end
-end
-
--- Für bereits vorhandene Spieler sowie neu hinzugefügte Spieler:
-for _, p in pairs(Players:GetPlayers()) do
-	if p ~= LocalPlayer then
-		p.CharacterAdded:Connect(function(character)
-			task.wait(0.1)
-			if chamsActive then
-				applyChamsToCharacter(character)
-			end
-		end)
-	end
-end
-
-Players.PlayerAdded:Connect(function(p)
-	if p ~= LocalPlayer then
-		p.CharacterAdded:Connect(function(character)
-			task.wait(0.1)
-			if chamsActive then
-				applyChamsToCharacter(character)
-			end
-		end)
-	end
-end)
-
-local chamsSection = Tabs.Chams:AddSection("chams")
-chamsSection:AddToggle("ChamsToggle", { Title = "chams", Default = false })
-	:OnChanged(function(state)
-		chamsActive = state
-		if state then
-			chamsTask = task.spawn(chamsLoop)
-		else
-			if chamsTask then task.cancel(chamsTask) end
-			chamsTask = nil
-			RemoveChams()
-		end
-	end)
-
-chamsSection:AddColorpicker("ChamsColor", { Title = "chams color", Default = chamsColor })
-	:OnChanged(function(c)
-		chamsColor = c
-	end)
-
--- Skeleton ESP Toggle und Skeleton Colorpicker
-chamsSection:AddToggle("SkeletonESPToggle", { Title = "Skeleton ESP", Default = false })
-	:OnChanged(function(state)
-		skeletonESPEnabled = state
-		if not state then
-			for player, lines in pairs(SkeletonESPs) do
-				for _, line in ipairs(lines) do
-					line:Remove()
-				end
-			end
-			SkeletonESPs = {}
-		end
-	end)
-
-chamsSection:AddColorpicker("SkeletonESPColor", { Title = "Skeleton Color", Default = skeletonESPColor })
-	:OnChanged(function(c)
-		skeletonESPColor = c
-	end)
-
----------------------------------------------------------
--- Nametags
----------------------------------------------------------
-local NametagsActive = false
-local nametagTask
-
-local function CreateNametag(p)
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "Nametag"
-	billboard.Size = UDim2.new(0, 50, 0, 50)
-	billboard.StudsOffset = Vector3.new(0, 2, 0)
-	billboard.AlwaysOnTop = true
-
-	local frame = Instance.new("Frame", billboard)
-	frame.Size = UDim2.new(1, 0, 1, 0)
-	frame.BackgroundTransparency = 1
-
-	local label = Instance.new("TextLabel", frame)
-	label.Size = UDim2.new(1, 0, 1, 0)
-	label.BackgroundTransparency = 1
-	label.Text = p.Name
-	label.TextScaled = false
-	label.TextSize = 14
-	label.Font = Enum.Font.GothamBold
-	label.TextColor3 = chamsColor
-	label.TextStrokeTransparency = 0.3
-
-	return billboard
-end
-
-local function RemoveNametags()
-	for _, p in pairs(Players:GetPlayers()) do
-		if p.Character and p.Character:FindFirstChild("Head") then
-			local tag = p.Character.Head:FindFirstChild("Nametag")
-			if tag then
-				tag:Destroy()
-			end
-		end
-	end
-end
-
-local function UpdateNametags()
-	for _, p in pairs(Players:GetPlayers()) do
-		if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
-			local head = p.Character.Head
-			local existing = head:FindFirstChild("Nametag")
-			if not existing then
-				local tag = CreateNametag(p)
-				tag.Parent = head
-			else
-				existing.Size = UDim2.new(0, 50, 0, 50)
-				local frame = existing:FindFirstChildOfClass("Frame")
-				if frame then
-					local lbl = frame:FindFirstChildOfClass("TextLabel")
-					if lbl then
-						lbl.TextColor3 = chamsColor
-					end
-				end
-			end
-		end
-	end
-end
-
-local function NametagsLoop()
-	while NametagsActive do
-		UpdateNametags()
-		task.wait(2)
-	end
-end
-
-local nametagsSection = Tabs.Chams:AddSection("nametags")
-nametagsSection:AddToggle("NametagsToggle", { Title = "enable nametag", Default = false })
-	:OnChanged(function(s)
-		NametagsActive = s
-		if s then
-			nametagTask = task.spawn(NametagsLoop)
-		else
-			if nametagTask then task.cancel(nametagTask) end
-			nametagTask = nil
-			RemoveNametags()
-		end
-	end)
-
----------------------------------------------------------
--- Tab: Voice
----------------------------------------------------------
-local VoiceSection = Tabs.Voice:AddSection("Voice Chat")
-
-VoiceSection:AddButton({
-	Title = "Bypass Voiceban",
-	Callback = function()
-		if VoiceChatService and VoiceChatService.joinVoice then
-			local success, err = pcall(function()
-				VoiceChatService:joinVoice()
-			end)
-			if not success then
-				warn("Voice join failed: " .. err)
-			else
-				print("Attempted to join voice.")
-				reEnableMovement()
-			end
-		else
-			warn("VoiceChatService oder joinVoice() nicht verfügbar.")
-		end
-	end
+-- Info Tab
+Tabs.Info:AddSection("Info"):AddParagraph({
+    Title="Info",
+    Content="★ Made by Tapetenputzer ★\nDiscord: tapetenputzer\nhttps://discord.gg/2xDHnGg6J"
 })
 
-local function isVoiceConnected()
-	if not VoiceChatService then 
-		return false 
-	end
-	local success, result = pcall(function()
-		return VoiceChatService.Running
-	end)
-	if success and result == true then
-		return true
-	end
-	return false
-end
-
-local autoVoiceJoinActive = false
-local autoVoiceJoinTask
-
-local function autoVoiceJoinLoop()
-	while autoVoiceJoinActive do
-		if not isVoiceConnected() then
-			if VoiceChatService and VoiceChatService.joinVoice then
-				local success, err = pcall(function()
-					VoiceChatService:joinVoice()
-				end)
-				if success then
-					print("Auto Voice Join: Versuch, Voicechat beizutreten.")
-					reEnableMovement()
-				else
-					warn("Auto Voice Join fehlgeschlagen: " .. err)
-				end
-			end
-		end
-		task.wait(5)
-	end
-end
-
-VoiceSection:AddToggle("AutoVoiceJoinToggle", { Title = "Auto Voice Join (experimental)", Default = false })
-	:OnChanged(function(state)
-		autoVoiceJoinActive = state
-		if state then
-			autoVoiceJoinTask = task.spawn(autoVoiceJoinLoop)
-		else
-			if autoVoiceJoinTask then task.cancel(autoVoiceJoinTask) end
-			autoVoiceJoinTask = nil
-		end
-	end)
-
----------------------------------------------------------
--- Tab: Teleport
----------------------------------------------------------
-local TeleportSection = Tabs.Teleport:AddSection("Teleport Players")
-local teleportButtons = {}
-
-for _, plr in pairs(Players:GetPlayers()) do
-	if plr ~= LocalPlayer and not teleportButtons[plr.UserId] then
-		teleportButtons[plr.UserId] = TeleportSection:AddButton({
-			Title = plr.Name,
-			Callback = function() TeleportToPlayer(plr) end
-		})
-	end
-end
-
-Players.PlayerAdded:Connect(function(plr)
-	if plr ~= LocalPlayer and not teleportButtons[plr.UserId] then
-		teleportButtons[plr.UserId] = TeleportSection:AddButton({
-			Title = plr.Name,
-			Callback = function() TeleportToPlayer(plr) end
-		})
-	end
-end)
-
----------------------------------------------------------
--- Tab: Spectate
----------------------------------------------------------
-local SpectateSection = Tabs.Spectate:AddSection("Spectate Players")
-local spectateButtons = {}
-
-SpectateSection:AddButton({
-	Title = "Stop Spectate",
-	Callback = function()
-		StopSpectating()
-	end
-})
-
-for _, plr in pairs(Players:GetPlayers()) do
-	if plr ~= LocalPlayer and not spectateButtons[plr.UserId] then
-		spectateButtons[plr.UserId] = SpectateSection:AddButton({
-			Title = plr.Name,
-			Callback = function() SpectatePlayer(plr) end
-		})
-	end
-end
-
-Players.PlayerAdded:Connect(function(plr)
-	if plr ~= LocalPlayer and not spectateButtons[plr.UserId] then
-		spectateButtons[plr.UserId] = SpectateSection:AddButton({
-			Title = plr.Name,
-			Callback = function() SpectatePlayer(plr) end
-		})
-	end
-end)
-
-Players.PlayerRemoving:Connect(function(plr)
-	if teleportButtons[plr.UserId] then
-		teleportButtons[plr.UserId]:Remove()
-		teleportButtons[plr.UserId] = nil
-	end
-	if spectateButtons[plr.UserId] then
-		spectateButtons[plr.UserId]:Remove()
-		spectateButtons[plr.UserId] = nil
-	end
-end)
-
----------------------------------------------------------
--- Tab: Info
----------------------------------------------------------
-local InfoSection = Tabs.Info:AddSection("Info")
--- Hier wurde der Info-Text angepasst, damit er besser sichtbar ist – inklusive deines Discord-Servers:
-InfoSection:AddParagraph({
-	Title = "Info",
-	Content = "★ Made by Tapetenputzer ★\n\nDiscord: tapetenputzer\nDiscord Server: https://discord.gg/2xDHnGg6cJ"
-	-- Falls das Framework zusätzliche Parameter für Textgröße oder Farbe unterstützt, können hier noch welche ergänzt werden.
-})
-
----------------------------------------------------------
--- Settings, Speichern, Laden
----------------------------------------------------------
+-- Settings Tab
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 SaveManager:IgnoreThemeSettings()
@@ -751,9 +555,5 @@ InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 SaveManager:LoadAutoloadConfig()
 
-Fluent:Notify({
-	Title = "Voice Ban Bypasser",
-	Content = "Script Loaded!",
-	Duration = 5
-})
+Fluent:Notify({Title="Voice Ban Bypasser",Content="Script Loaded!",Duration=5})
 Window:SelectTab(1)
